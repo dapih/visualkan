@@ -1,6 +1,6 @@
 # Releasing
 
-This document covers how to cut a new release of the visual-explainer skill.
+This document covers how to cut a new release of the visualkan skill.
 
 ## Versioning
 
@@ -44,11 +44,11 @@ If you maintain a changelog, add an entry for the new version describing what ch
 ### 4. Test the install
 
 ```bash
-make install            # installs to ~/.claude/commands/
+make install            # installs to ~/.claude/skills/
 make openclaw-install   # installs to ~/clawd/skills/ (if using OpenClaw)
 ```
 
-Open a new Claude Code (or OpenClaw) session and verify `/visual-explainer` works as expected.
+Open a new Claude Code (or OpenClaw) session and verify `/visualkan` works as expected.
 
 ### 5. Commit, tag, and push
 
@@ -58,7 +58,7 @@ git push && git push --tags
 ```
 
 The `make release` target:
-- Stages `skill/metadata.json` and `skill/visual-explainer.md`
+- Stages `skill/metadata.json` and `skill/visualkan.md`
 - Creates a commit: `Release v<version>`
 - Creates an annotated git tag: `v<version>`
 

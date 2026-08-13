@@ -1,11 +1,11 @@
-SKILL_NAME    := visual-explainer
+SKILL_NAME    := visualkan
 SKILL_DIR     := skill
 SKILL_FILE    := $(SKILL_DIR)/$(SKILL_NAME).md
 METADATA_FILE := $(SKILL_DIR)/metadata.json
 VERSION       := $(shell jq -r '.version' $(METADATA_FILE))
 
 # Install paths
-CLAUDE_COMMANDS_DIR    := $(HOME)/.claude/commands
+CLAUDE_SKILLS_DIR      ?= $(HOME)/.claude/skills
 OPENCLAW_SKILLS_DIR    ?= $(HOME)/clawd/skills
 
 # Antigravity (Global: ~/.gemini/config/skills/, Project: .agents/skills/)
@@ -65,14 +65,19 @@ help: ## Show this help
 # Claude Code
 # ============================================================================
 
-install: check ## Install skill to ~/.claude/commands/
-	@mkdir -p $(CLAUDE_COMMANDS_DIR)
-	@cp $(SKILL_FILE) $(CLAUDE_COMMANDS_DIR)/$(SKILL_NAME).md
-	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(CLAUDE_COMMANDS_DIR)/$(SKILL_NAME).md"
+install: check ## Install skill to ~/.claude/skills/
+	@mkdir -p $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)
+	@cp $(SKILL_FILE) $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md
+	@cp $(METADATA_FILE) $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/metadata.json
+	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
 
-uninstall: ## Remove skill from ~/.claude/commands/
-	@rm -f $(CLAUDE_COMMANDS_DIR)/$(SKILL_NAME).md
-	@echo "Uninstalled $(SKILL_NAME) from $(CLAUDE_COMMANDS_DIR)"
+uninstall: ## Remove skill from ~/.claude/skills/
+	@if [ -d $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME) ]; then \
+		rm -rf $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME); \
+		echo "Uninstalled $(SKILL_NAME) from $(CLAUDE_SKILLS_DIR)"; \
+	else \
+		echo "$(SKILL_NAME) not installed in Claude Code"; \
+	fi
 
 version: ## Print current version
 	@echo $(VERSION)

@@ -1,5 +1,5 @@
 {
-  "name": "visual-explainer",
+  "name": "visualkan",
   "version": "1.4.0",
   "description": "Generate visual explanations (whiteboard, infographic, presentation, diagram, mindmap, mockup) from any content using native subscription capabilities (Antigravity/Codex) or image generation APIs (OpenAI, Gemini, OpenRouter)",
   "author": {
@@ -10,7 +10,7 @@
   "created": "2026-04-01",
   "updated": "2026-08-08",
   "keywords": [
-    "visual-explainer",
+    "visualkan",
     "whiteboard",
     "infographic",
     "mindmap",
@@ -32,9 +32,6 @@
       "OPENAI_API_KEY",
       "GEMINI_API_KEY",
       "OPENROUTER_API_KEY"
-    ],
-    "skills": [
-      "generate-images"
     ]
   },
   "styles": [
@@ -46,5 +43,5 @@
     "mindmap-structured",
     "mockup"
   ],
-  "entry": "visual-explainer.md"
+  "entry": "visualkan.md"
 }

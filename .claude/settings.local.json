@@ -1,3 +1,11 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(gh pr *)",
+      "Bash(make check *)",
+      "Bash(make info *)",
+      "Bash(test -f \"skill/$\\(jq -r .entry skill/metadata.json\\)\")"
+    ]
+  },
   "outputStyle": "simple-english"
 }

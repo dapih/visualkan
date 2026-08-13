@@ -1,5 +1,5 @@
 ---
-name: visual-explainer
+name: visualkan
 description: Generate visual explanations (whiteboard, infographic, presentation, diagram, mindmap, mockup) from any content using native subscription capabilities (Antigravity/Codex) or image generation APIs (OpenAI, Gemini, OpenRouter). Use when the user wants to visualize, explain visually, create an infographic, draw a mind map, make a whiteboard sketch, or generate a UI wireframe/mockup of a topic.
 argument-hint: "[--style whiteboard|infographic|presentation|diagram|mindmap|mindmap-structured|mockup] [--draw-level sketch|normal|polished] [--device mobile|desktop|tablet] [--complexity simple|moderate|detailed] [--backend native|openai|gemini|openrouter] [--model <model_name>] <content>"
 allowed-tools: Bash, Read, Write, Glob, Grep
@@ -9,22 +9,22 @@ Generate a visual explanation (whiteboard, infographic, presentation, diagram, m
 
 ## Usage
 
-- `/visual-explainer Explain how DNS resolution works` — whiteboard style (default)
-- `/visual-explainer --style infographic How machine learning models are trained`
-- `/visual-explainer --style presentation The software development lifecycle`
-- `/visual-explainer --style diagram --complexity detailed Kubernetes pod networking`
-- `/visual-explainer --style mindmap The principles of object-oriented programming` — colorful radial mindmap
-- `/visual-explainer --style mindmap-structured Project management methodologies` — clean, data-oriented XMind-style
-- `/visual-explainer --style mockup A mobile app login screen with email, password, and social login` — polished UI wireframe
-- `/visual-explainer --style mockup --device desktop An admin dashboard with sidebar navigation and data tables` — desktop wireframe
-- `/visual-explainer --style mockup --draw-level sketch A settings page with toggles and dropdowns` — hand-drawn wireframe
-- `/visual-explainer --draw-level sketch How the internet works` — rougher hand-drawn feel
-- `/visual-explainer --draw-level polished --style whiteboard React component lifecycle`
-- `/visual-explainer --style infographic --from mermaid` — convert a Mermaid diagram into a polished infographic
-- `/visual-explainer --style whiteboard --from mermaid-file docs/architecture.mmd` — read a .mmd file and convert it
-- `/visual-explainer --backend gemini How the water cycle works` — use Gemini/Nano Banana 2 instead of OpenAI
-- `/visual-explainer --backend openrouter --model bytedance-seed/seedream-4.5 How async/await works` — use OpenRouter with SeeDream model
-- `/visual-explainer --backend openrouter --model black-forest-labs/flux-1.1-pro Microservice communication` — use OpenRouter with Flux model
+- `/visualkan Explain how DNS resolution works` — whiteboard style (default)
+- `/visualkan --style infographic How machine learning models are trained`
+- `/visualkan --style presentation The software development lifecycle`
+- `/visualkan --style diagram --complexity detailed Kubernetes pod networking`
+- `/visualkan --style mindmap The principles of object-oriented programming` — colorful radial mindmap
+- `/visualkan --style mindmap-structured Project management methodologies` — clean, data-oriented XMind-style
+- `/visualkan --style mockup A mobile app login screen with email, password, and social login` — polished UI wireframe
+- `/visualkan --style mockup --device desktop An admin dashboard with sidebar navigation and data tables` — desktop wireframe
+- `/visualkan --style mockup --draw-level sketch A settings page with toggles and dropdowns` — hand-drawn wireframe
+- `/visualkan --draw-level sketch How the internet works` — rougher hand-drawn feel
+- `/visualkan --draw-level polished --style whiteboard React component lifecycle`
+- `/visualkan --style infographic --from mermaid` — convert a Mermaid diagram into a polished infographic
+- `/visualkan --style whiteboard --from mermaid-file docs/architecture.mmd` — read a .mmd file and convert it
+- `/visualkan --backend gemini How the water cycle works` — use Gemini/Nano Banana 2 instead of OpenAI
+- `/visualkan --backend openrouter --model bytedance-seed/seedream-4.5 How async/await works` — use OpenRouter with SeeDream model
+- `/visualkan --backend openrouter --model black-forest-labs/flux-1.1-pro Microservice communication` — use OpenRouter with Flux model
 
 ## Arguments
 
@@ -37,10 +37,10 @@ The argument string is available as `$ARGUMENTS`. Parse it according to these ru
 | `--style S` | `whiteboard` | Visual style: `whiteboard`, `infographic`, `presentation`, `diagram`, `mindmap`, `mindmap-structured`, `mockup` |
 | `--device D` | `mobile` | Device frame for mockup style: `mobile` (phone), `desktop` (browser window), `tablet` (iPad-style). Only used with `--style mockup`. |
 | `--draw-level L` | `normal` | How hand-drawn vs polished: `sketch` (rough/playful), `normal` (balanced), `polished` (clean/professional) |
-| `--complexity C` | `moderate` | Content density: `simple` (3-4 concepts), `moderate` (5-7 concepts), `detailed` (8-12 concepts) |
+| `--complexity C` | `moderate` | Number of sections: `simple` (3-4), `moderate` (5-7), `detailed` (8-12) |
 | `--size WxH` | style-dependent | Image dimensions. Defaults: whiteboard=`1536x1024`, infographic=`1024x1536`, presentation=`1536x1024`, diagram=`1024x1024`, mindmap=`1536x1024`, mindmap-structured=`1536x1024`, mockup=`1024x1536` (mobile/tablet) or `1536x1024` (desktop) |
 | `--output DIR` | `./` | Output directory |
-| `--prefix NAME` | `visual-explainer` | Filename prefix |
+| `--prefix NAME` | `visualkan` | Filename prefix |
 | `--mode M` | `single` | `single` (one image) or `multi-frame` (series of images building up the concept) |
 | `--from F` | (none) | Input source: `mermaid` (inline Mermaid in content or clipboard), `mermaid-file PATH` (read from a .mmd/.md file) |
 | `--backend B` | auto-detected | Image generation backend: `native` (built-in subscription for Antigravity/Codex via `generate_image`), `openai` (gpt-image-2), `gemini` (Nano Banana 2), or `openrouter` (OpenRouter API key). |
@@ -153,7 +153,7 @@ Parse the Mermaid syntax to extract the following structured data:
 **CRITICAL**: Mermaid input gives you EXACT structure — use it. Every node becomes a labeled visual element. Every edge becomes an arrow or connection. Every subgraph becomes a visual grouping/container. This is MORE precise than free-text input, so the resulting prompts should be MORE detailed, not less.
 
 After parsing, proceed to Step 2 using the extracted structure as the input for analysis. The Mermaid data pre-fills much of the analysis:
-- Nodes → Sub-Topics
+- Nodes → Sections
 - Edges → Relationships (with exact labels)
 - Subgraphs → Layout groupings
 - You still need to add: Visual Metaphors, Color Coding, and style-specific decorative elements
@@ -165,8 +165,8 @@ Before generating any image, you MUST deeply analyze the input content to extrac
 Perform the following analysis and write it out explicitly:
 
 1. **Core Concept**: What is the single main idea?
-2. **Key Sub-Topics**: List 3-12 sub-topics depending on complexity setting
-3. **Relationships**: How do sub-topics connect? (hierarchy, sequence, cause-effect, comparison, part-whole)
+2. **Sections**: List 3-12 sections depending on complexity setting
+3. **Relationships**: How do sections connect? (hierarchy, sequence, cause-effect, comparison, part-whole)
 4. **Visual Metaphors**: What real-world objects or metaphors could represent each concept? (e.g., "security" → shield, "data flow" → pipeline/river, "scaling" → mountains/ladder)
 5. **Layout Strategy**: How should sections be arranged spatially? (radial from center, left-to-right flow, top-to-bottom hierarchy, grid, timeline)
 6. **Color Coding**: Assign a color theme to each major section for visual grouping
@@ -200,10 +200,10 @@ CANVAS: A large whiteboard with [slight off-white texture / clean white surface 
 
 TITLE: "[Title text]" written in large, bold [hand-lettered / marker-style] text across the top [center/left]. Use [color] for the title with [decorative underline / banner / box around it]. [If sketch: slightly uneven lettering with personality. If polished: confident, clean hand-lettering.]
 
-LAYOUT: [Describe the spatial arrangement — e.g., "Radial layout with the central concept in the middle and 5 sub-topics arranged around it like spokes of a wheel" or "Left-to-right flow with 4 stages connected by large curved arrows"]
+LAYOUT: [Describe the spatial arrangement — e.g., "Radial layout with the core concept in the middle and 5 sections arranged around it like spokes of a wheel" or "Left-to-right flow with 4 stages connected by large curved arrows"]
 
 SECTIONS:
-[For each sub-topic, describe:]
+[For each section, describe:]
 - "[Section Title]" in [color] bold marker text [position]
 - [Icon/illustration description — be VERY specific, e.g., "a hand-drawn brain with visible folds and small lightning bolts coming from it" not just "a brain icon"]
 - Key points written in smaller [handwriting/print] text: "[exact text]"
@@ -213,7 +213,7 @@ SECTIONS:
 CONNECTIONS:
 [Describe every arrow, line, and visual connection between sections]
 - [e.g., "A thick curved arrow in blue flows from Section 1 to Section 2 with the word 'triggers' written along it"]
-- [e.g., "Dotted red lines connect the three related concepts with small heart icons at the endpoints"]
+- [e.g., "Dotted red lines connect the three related sections with small heart icons at the endpoints"]
 
 DECORATIVE ELEMENTS:
 [Scatter appropriate decorations throughout — these bring the whiteboard to life]
@@ -239,7 +239,7 @@ CANVAS: [Portrait/landscape] format with a [color] background. [If polished: sub
 
 HEADER: "[Title]" in large, bold [sans-serif / modern] typography at the top. [Subtitle if applicable] in lighter weight below. Use [color scheme] for the header area with [a decorative banner, geometric shape, or colored background block].
 
-COLOR PALETTE: Use a sophisticated, cohesive palette — [specify exact scheme, e.g., "slate blue (#4A6FA5), warm taupe (#B8A898), olive green (#6B7F3B), charcoal (#3D3D3D), and cream (#F5F0E8) — inspired by modern editorial design"]. Use color consistently to group related concepts.
+COLOR PALETTE: Use a sophisticated, cohesive palette — [specify exact scheme, e.g., "slate blue (#4A6FA5), warm taupe (#B8A898), olive green (#6B7F3B), charcoal (#3D3D3D), and cream (#F5F0E8) — inspired by modern editorial design"]. Use color consistently to group related sections.
 
 LAYOUT: [Describe the grid/flow structure — e.g., "Two-column layout with numbered sections flowing top-to-bottom. Left column covers theory, right column covers application. A central dividing line with decorative elements separates them."]
 
@@ -320,7 +320,7 @@ CANVAS: [White / cream / light gray] background, landscape orientation. Clean bu
 
 CENTER NODE: A large, eye-catching central element in the exact center of the image:
 - Shape: [rounded rectangle / circle / cloud / organic blob] with a bold fill color (e.g., rich coral, deep teal, or vibrant purple)
-- Text: "[Central Topic]" in large, bold white or dark text inside the shape
+- Text: "[Core Concept]" in large, bold white or dark text inside the shape
 - [Optional: a small icon or illustration inside or beside the central node that represents the topic — e.g., a brain, a gear, a lightbulb]
 - The center should feel like the "sun" of the map — everything radiates outward from it
 
@@ -328,11 +328,11 @@ MAIN BRANCHES: [4-8 depending on complexity] thick, organic, curved branches rad
 - Be a DIFFERENT bold color (e.g., branch 1: cherry red, branch 2: ocean blue, branch 3: emerald green, branch 4: golden amber, branch 5: deep purple, branch 6: tangerine orange)
 - Curve gracefully outward — NOT straight lines. Use smooth, flowing, slightly wavy curves
 - Taper from thick (near center) to thinner as they extend outward
-- End at a rounded rectangle or pill-shaped node containing the sub-topic title
+- End at a rounded rectangle or pill-shaped node containing the section title
 
 BRANCH NODES (Level 1): At the end of each main branch:
 - A rounded rectangle or pill shape filled with the SAME color as its branch (but slightly lighter tint)
-- "[Sub-Topic Title]" in bold text inside
+- "[Section Title]" in bold text inside
 - [Small relevant icon next to or inside the node — be specific about each icon]
 
 SUB-BRANCHES (Level 2): From each Level 1 node, extend 2-4 thinner branches outward:
@@ -375,7 +375,7 @@ CANVAS: Clean white or very light gray (#F8F9FA) background, landscape orientati
 CENTER NODE: A prominent but understated central element in the center:
 - Shape: Rounded rectangle with subtle shadow or thin border
 - Fill: Muted professional color (e.g., dark slate blue #2C3E50, charcoal #34495E, or dark teal #1A5276)
-- Text: "[Central Topic]" in clean, white, bold sans-serif text
+- Text: "[Core Concept]" in clean, white, bold sans-serif text
 - Subtle drop shadow or thin 1px border — no glow, no decoration
 - [Optional: a small monochrome icon to the left of the text]
 
@@ -387,7 +387,7 @@ MAIN BRANCHES: [4-8 depending on complexity] — these are clean, straight or ge
 
 BRANCH NODES (Level 1): Connected to the center:
 - Rounded rectangles with thin colored border matching the branch color, white or very light fill
-- "[Sub-Topic Title]" in dark text, bold, clean sans-serif
+- "[Section Title]" in dark text, bold, clean sans-serif
 - Consistent sizing across all Level 1 nodes
 - [Optional: small monochrome or duotone icon (line-art style) to the left of text]
 
@@ -695,7 +695,7 @@ echo '<response>' | jq -r '.candidates[0].content.parts[] | select(.inlineData) 
 After generating the image, also output a structured text summary in this format:
 
 ```
-## Visual Explainer: [Title]
+## Visualkan: [Title]
 
 **Style:** [style] | **Backend:** [OpenAI gpt-image-2, Gemini Nano Banana 2, or OpenRouter] | **Draw Level:** [draw-level] | **Complexity:** [complexity]
 
@@ -762,7 +762,7 @@ If any item is missing, add it before generating.
 - The `mockup` style is ideal for rapid wireframing from PRDs, brainstorming UI layouts, or visualizing modernized interfaces for existing code
 - Use `mindmap` when the audience values visual appeal and creativity
 - Use `mindmap-structured` when the audience values precision, data density, and professional presentation
-- The `draw-level` parameter only significantly affects `whiteboard` and `presentation` styles
+- The `draw-level` parameter changes the `whiteboard`, `infographic`, and `mockup` templates. The other styles ignore it today.
 - Multi-frame mode costs more (one API call per frame) — warn the user about cost
 - Estimated cost (OpenAI): ~$0.053 per image at medium quality, 1024x1024. High quality ~$0.211
 - Estimated cost (Gemini): Free tier available; check current pricing at aistudio.google.com

@@ -1,4 +1,4 @@
-# Visual Explainer Skill
+# Visualkan
 
 A cross-platform AI skill that converts any content into stunning visual explanations — whiteboard sketches, professional infographics, presentation slides, technical diagrams, mind maps, and UI wireframe mockups — supporting Antigravity, Codex, Claude Code, and OpenClaw, powered by Native Subscriptions (Antigravity/Codex), OpenAI (gpt-image-2), Google Gemini (Nano Banana 2), or OpenRouter (SeeDream, Flux, Krea, RiverFlow, QwenImage, etc.).
 
@@ -6,20 +6,20 @@ A cross-platform AI skill that converts any content into stunning visual explana
 
 AI-generated visual explanations have exploded in popularity — tools like NotebookLM and Gemini can turn documents into polished infographics and whiteboard sketches. But these tools are closed ecosystems. You can't customize the output style, integrate them into your dev workflow, or control the prompts that drive the generation.
 
-**Visual Explainer** brings this capability directly into your AI coding assistant (Antigravity, Codex, Claude Code, or OpenClaw) as a skill / slash command. It takes any content — a topic, a document, meeting notes, a codebase — and transforms it into a rich visual explanation.
+**Visualkan** brings this capability directly into your AI coding assistant (Antigravity, Codex, Claude Code, or OpenClaw) as a skill. It takes any content — a topic, a document, meeting notes, a codebase — and transforms it into a rich visual explanation.
 
-The core insight is that image generation quality depends almost entirely on prompt quality. Visual Explainer uses deeply structured, 400-800 word prompts with explicit spatial layout, icon descriptions, color palettes, typography, and connections — producing results that rival or exceed what dedicated visual AI tools generate.
+The core insight is that image generation quality depends almost entirely on prompt quality. Visualkan uses deeply structured, 400-800 word prompts with explicit spatial layout, icon descriptions, color palettes, typography, and connections — producing results that rival or exceed what dedicated visual AI tools generate.
 
 ### Design Principles
 
 - **Style Spectrum** — From rough whiteboard sketches to polished infographics, with a `--draw-level` parameter to control exactly where on the hand-drawn-to-professional spectrum the output lands
-- **Deep Content Analysis** — Every generation starts with structured extraction of concepts, relationships, visual metaphors, and layout strategy before any prompt is written
+- **Deep Content Analysis** — Every generation starts with structured extraction of the core concept, sections, relationships, visual metaphors, and layout strategy before any prompt is written
 - **Prompt Engineering as the Product** — The skill's value is in its style-specific prompt templates, not just API wrappers. Each style (whiteboard, infographic, presentation, diagram, mindmap, mindmap-structured, mockup) has a comprehensive template tuned for that visual language
 - **Composable with Documents** — Works naturally with your AI assistant's ability to read files, so you can point it at any existing doc, spec, or codebase and generate visuals from it
 
-### Author
+### Credits
 
-Created by [Eric Blue](https://about.ericblue.com) ([GitHub](https://github.com/ericblue))
+Visualkan is a fork of the `visual-explainer` skill by [Eric Blue](https://about.ericblue.com) ([GitHub](https://github.com/ericblue)). It is used under the MIT license. See [LICENSE](LICENSE) for the original copyright notice, and [ADR 0001](docs/adr/0001-fork-visual-explainer-as-visualkan.md) for why this project forked.
 
 ## Prerequisites
 
@@ -117,14 +117,14 @@ This skill supports any Skills-compatible agent or CLI tool that supports markdo
   - **Manual copy**:
     ```bash
     # macOS / Linux
-    mkdir -p /path/to/your-project/.agents/skills/visual-explainer
-    cp skill/visual-explainer.md /path/to/your-project/.agents/skills/visual-explainer/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.agents/skills/visual-explainer/metadata.json
+    mkdir -p /path/to/your-project/.agents/skills/visualkan
+    cp skill/visualkan.md /path/to/your-project/.agents/skills/visualkan/SKILL.md
+    cp skill/metadata.json /path/to/your-project/.agents/skills/visualkan/metadata.json
 
     # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.agents\skills\visual-explainer"
-    Copy-Item skill\visual-explainer.md "C:\path\to\your-project\.agents\skills\visual-explainer\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.agents\skills\visual-explainer\metadata.json"
+    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.agents\skills\visualkan"
+    Copy-Item skill\visualkan.md "C:\path\to\your-project\.agents\skills\visualkan\SKILL.md"
+    Copy-Item skill\metadata.json "C:\path\to\your-project\.agents\skills\visualkan\metadata.json"
     ```
 
 ### 2. Gemini CLI
@@ -141,14 +141,14 @@ This skill supports any Skills-compatible agent or CLI tool that supports markdo
   - **Manual copy**:
     ```bash
     # macOS / Linux
-    mkdir -p /path/to/your-project/.gemini/skills/visual-explainer
-    cp skill/visual-explainer.md /path/to/your-project/.gemini/skills/visual-explainer/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.gemini/skills/visual-explainer/metadata.json
+    mkdir -p /path/to/your-project/.gemini/skills/visualkan
+    cp skill/visualkan.md /path/to/your-project/.gemini/skills/visualkan/SKILL.md
+    cp skill/metadata.json /path/to/your-project/.gemini/skills/visualkan/metadata.json
 
     # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.gemini\skills\visual-explainer"
-    Copy-Item skill\visual-explainer.md "C:\path\to\your-project\.gemini\skills\visual-explainer\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.gemini\skills\visual-explainer\metadata.json"
+    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.gemini\skills\visualkan"
+    Copy-Item skill\visualkan.md "C:\path\to\your-project\.gemini\skills\visualkan\SKILL.md"
+    Copy-Item skill\metadata.json "C:\path\to\your-project\.gemini\skills\visualkan\metadata.json"
     ```
 
 ### 3. Codex CLI
@@ -165,14 +165,14 @@ This skill supports any Skills-compatible agent or CLI tool that supports markdo
   - **Manual copy**:
     ```bash
     # macOS / Linux
-    mkdir -p /path/to/your-project/.codex/skills/visual-explainer
-    cp skill/visual-explainer.md /path/to/your-project/.codex/skills/visual-explainer/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.codex/skills/visual-explainer/metadata.json
+    mkdir -p /path/to/your-project/.codex/skills/visualkan
+    cp skill/visualkan.md /path/to/your-project/.codex/skills/visualkan/SKILL.md
+    cp skill/metadata.json /path/to/your-project/.codex/skills/visualkan/metadata.json
 
     # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.codex\skills\visual-explainer"
-    Copy-Item skill\visual-explainer.md "C:\path\to\your-project\.codex\skills\visual-explainer\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.codex\skills\visual-explainer\metadata.json"
+    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.codex\skills\visualkan"
+    Copy-Item skill\visualkan.md "C:\path\to\your-project\.codex\skills\visualkan\SKILL.md"
+    Copy-Item skill\metadata.json "C:\path\to\your-project\.codex\skills\visualkan\metadata.json"
     ```
 
 ### 4. Open Agent Standard (agentskills.io)
@@ -190,29 +190,41 @@ This skill supports any Skills-compatible agent or CLI tool that supports markdo
   - **Manual copy**:
     ```bash
     # macOS / Linux
-    mkdir -p /path/to/your-project/.agents/skills/visual-explainer
-    cp skill/visual-explainer.md /path/to/your-project/.agents/skills/visual-explainer/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.agents/skills/visual-explainer/metadata.json
+    mkdir -p /path/to/your-project/.agents/skills/visualkan
+    cp skill/visualkan.md /path/to/your-project/.agents/skills/visualkan/SKILL.md
+    cp skill/metadata.json /path/to/your-project/.agents/skills/visualkan/metadata.json
 
     # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.agents\skills\visual-explainer"
-    Copy-Item skill\visual-explainer.md "C:\path\to\your-project\.agents\skills\visual-explainer\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.agents\skills\visual-explainer\metadata.json"
+    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.agents\skills\visualkan"
+    Copy-Item skill\visualkan.md "C:\path\to\your-project\.agents\skills\visualkan\SKILL.md"
+    Copy-Item skill\metadata.json "C:\path\to\your-project\.agents\skills\visualkan\metadata.json"
     ```
 
 ### 5. Claude Code
 
-```bash
-make install
-```
-Or manually copy `skill/visual-explainer.md` to `~/.claude/commands/visual-explainer.md`.
+- **Global scope**: `~/.claude/skills/` (macOS/Linux) or `%USERPROFILE%\.claude\skills\` (Windows)
+  ```bash
+  make install
+  ```
+- **Manual copy**:
+  ```bash
+  # macOS / Linux
+  mkdir -p ~/.claude/skills/visualkan
+  cp skill/visualkan.md ~/.claude/skills/visualkan/SKILL.md
+  cp skill/metadata.json ~/.claude/skills/visualkan/metadata.json
+
+  # Windows (PowerShell)
+  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\visualkan"
+  Copy-Item skill\visualkan.md "$env:USERPROFILE\.claude\skills\visualkan\SKILL.md"
+  Copy-Item skill\metadata.json "$env:USERPROFILE\.claude\skills\visualkan\metadata.json"
+  ```
 
 ### 6. OpenClaw
 
 ```bash
 make openclaw-install
 ```
-Or manually copy `skill/visual-explainer.md` to `~/clawd/skills/visual-explainer/SKILL.md`.
+Or manually copy `skill/visualkan.md` to `~/clawd/skills/visualkan/SKILL.md`.
 
 ### Makefile targets
 
@@ -240,8 +252,8 @@ Or manually copy `skill/visual-explainer.md` to `~/clawd/skills/visual-explainer
 | `make gemini-project-install` | Install to Gemini project scope | `<PROJECT_DIR>/.gemini/skills/` |
 | `make codex-project-install` | Install to Codex project scope | `<PROJECT_DIR>/.codex/skills/` |
 | **Claude Code** | | |
-| `make install` | Install to global scope | `~/.claude/commands/` |
-| `make uninstall` | Remove from global scope | `~/.claude/commands/` |
+| `make install` | Install to global scope | `~/.claude/skills/` |
+| `make uninstall` | Remove from global scope | `~/.claude/skills/` |
 | **OpenClaw** | | |
 | `make openclaw-install` | Install to global scope | `~/clawd/skills/` |
 | `make openclaw-uninstall` | Remove from global scope | `~/clawd/skills/` |
@@ -254,53 +266,53 @@ Or manually copy `skill/visual-explainer.md` to `~/clawd/skills/visual-explainer
 ## Usage
 
 ```
-/visual-explainer [--style S] [--draw-level L] [--complexity C] [--size WxH] [--mode M] [--output DIR] [--prefix NAME] <content>
+/visualkan [--style S] [--draw-level L] [--complexity C] [--size WxH] [--mode M] [--output DIR] [--prefix NAME] <content>
 ```
 
 ### Quick examples
 
 ```bash
 # Default whiteboard style
-/visual-explainer How DNS resolution works
+/visualkan How DNS resolution works
 
 # Professional infographic
-/visual-explainer --style infographic The foundations of machine learning
+/visualkan --style infographic The foundations of machine learning
 
 # Rough sketch feel
-/visual-explainer --draw-level sketch How Git branching works
+/visualkan --draw-level sketch How Git branching works
 
 # Detailed technical diagram
-/visual-explainer --style diagram --complexity detailed Kubernetes pod networking
+/visualkan --style diagram --complexity detailed Kubernetes pod networking
 
 # Multi-frame progressive build-up
-/visual-explainer --mode multi-frame The OAuth2 authorization code flow
+/visualkan --mode multi-frame The OAuth2 authorization code flow
 
 # Custom output location
-/visual-explainer --output ./docs/images --prefix arch-overview System architecture of a microservices app
+/visualkan --output ./docs/images --prefix arch-overview System architecture of a microservices app
 
 # Colorful radial mind map
-/visual-explainer --style mindmap The principles of object-oriented programming
+/visualkan --style mindmap The principles of object-oriented programming
 
 # Clean, data-oriented XMind-style mind map
-/visual-explainer --style mindmap-structured Project management methodologies
+/visualkan --style mindmap-structured Project management methodologies
 
 # UI wireframe mockup (mobile, polished by default)
-/visual-explainer --style mockup A mobile app login screen with email, password, social login, and forgot password
+/visualkan --style mockup A mobile app login screen with email, password, social login, and forgot password
 
 # Desktop web app wireframe
-/visual-explainer --style mockup --device desktop An admin dashboard with sidebar nav, stats cards, charts, and data table
+/visualkan --style mockup --device desktop An admin dashboard with sidebar nav, stats cards, charts, and data table
 
 # Hand-drawn wireframe for brainstorming
-/visual-explainer --style mockup --draw-level sketch A settings page with profile photo, name fields, toggles, and save button
+/visualkan --style mockup --draw-level sketch A settings page with profile photo, name fields, toggles, and save button
 
 # Use Gemini instead of OpenAI
-/visual-explainer --backend gemini How the water cycle works
+/visualkan --backend gemini How the water cycle works
 
 # Use OpenRouter with SeeDream model (default)
-/visual-explainer --backend openrouter --model bytedance-seed/seedream-4.5 How async/await works
+/visualkan --backend openrouter --model bytedance-seed/seedream-4.5 How async/await works
 
 # Use OpenRouter with Flux model
-/visual-explainer --backend openrouter --model black-forest-labs/flux-1.1-pro Microservice communication
+/visualkan --backend openrouter --model black-forest-labs/flux-1.1-pro Microservice communication
 ```
 
 ### Converting Mermaid diagrams
@@ -309,16 +321,16 @@ Any Mermaid diagram can be transformed into any visual style. The skill parses n
 
 ```bash
 # Inline Mermaid — paste or type the diagram as the content
-/visual-explainer --style infographic --from mermaid flowchart TD; A[Start] --> B{Decision}; B -->|Yes| C[Do Thing]; B -->|No| D[Other Thing]
+/visualkan --style infographic --from mermaid flowchart TD; A[Start] --> B{Decision}; B -->|Yes| C[Do Thing]; B -->|No| D[Other Thing]
 
 # From a .mmd file
-/visual-explainer --style whiteboard --from mermaid-file docs/architecture.mmd
+/visualkan --style whiteboard --from mermaid-file docs/architecture.mmd
 
 # From a markdown file containing a mermaid code block
-/visual-explainer --style presentation --from mermaid-file docs/sequence-diagram.md
+/visualkan --style presentation --from mermaid-file docs/sequence-diagram.md
 
 # Auto-detect — if the content looks like Mermaid, it's parsed automatically
-/visual-explainer --style diagram sequenceDiagram; participant A as Client; participant B as Server; A->>B: Request; B-->>A: Response
+/visualkan --style diagram sequenceDiagram; participant A as Client; participant B as Server; A->>B: Request; B-->>A: Response
 ```
 
 ### Working with existing documents
@@ -328,48 +340,48 @@ The skill works great when pointed at existing files. You can ask it to read a d
 **Generate directly from a file:**
 
 ```
-Read docs/architecture.md and then /visual-explainer --style diagram the system architecture described in that document
+Read docs/architecture.md and then /visualkan --style diagram the system architecture described in that document
 ```
 
 **Summarize first, then visualize:**
 
 ```
 Read docs/api-spec.md, summarize the key endpoints, request/response flows, and auth
-mechanisms, then /visual-explainer --style infographic the summary
+mechanisms, then /visualkan --style infographic the summary
 ```
 
 **Visualize a README or spec:**
 
 ```
-Review the PRD at docs/product-requirements.md and /visual-explainer --style presentation
+Review the PRD at docs/product-requirements.md and /visualkan --style presentation
 a one-slide executive summary of the product vision, key features, and target users
 ```
 
 **Turn meeting notes into a whiteboard:**
 
 ```
-Read notes/2024-03-15-retro.md and /visual-explainer --draw-level sketch
+Read notes/2024-03-15-retro.md and /visualkan --draw-level sketch
 a whiteboard summary of the key takeaways, action items, and themes
 ```
 
 **Compare concepts from a doc:**
 
 ```
-Read docs/database-comparison.md and /visual-explainer --style infographic --complexity detailed
+Read docs/database-comparison.md and /visualkan --style infographic --complexity detailed
 a comparison of the database options with pros, cons, and recommendations
 ```
 
 **Multi-frame walkthrough of a complex doc:**
 
 ```
-Read docs/deployment-guide.md and /visual-explainer --mode multi-frame --style whiteboard
+Read docs/deployment-guide.md and /visualkan --mode multi-frame --style whiteboard
 the deployment process as a step-by-step walkthrough
 ```
 
 **Visualize code architecture:**
 
 ```
-Review the src/ directory structure and key modules, then /visual-explainer --style diagram
+Review the src/ directory structure and key modules, then /visualkan --style diagram
 --complexity detailed the codebase architecture showing module dependencies and data flow
 ```
 
@@ -380,14 +392,14 @@ Review the src/ directory structure and key modules, then /visual-explainer --st
 | `--style` | `whiteboard`, `infographic`, `presentation`, `diagram`, `mindmap`, `mindmap-structured`, `mockup` | `whiteboard` | Visual style |
 | `--device` | `mobile`, `desktop`, `tablet` | `mobile` | Device frame for mockup style |
 | `--draw-level` | `sketch`, `normal`, `polished` | `normal` | Hand-drawn roughness vs clean precision |
-| `--complexity` | `simple`, `moderate`, `detailed` | `moderate` | Number of concepts (3-4, 5-7, or 8-12) |
+| `--complexity` | `simple`, `moderate`, `detailed` | `moderate` | Number of sections (3-4, 5-7, or 8-12) |
 | `--size` | `1024x1024`, `1536x1024`, `1024x1536` | Style-dependent | Image dimensions |
 | `--mode` | `single`, `multi-frame` | `single` | One image or a progressive series |
 | `--from` | `mermaid`, `mermaid-file PATH` | (none) | Parse Mermaid input (inline or from a file) |
 | `--backend` | `native`, `openai`, `gemini`, `openrouter` | Auto-detected | Image generation backend. Auto-detects native subscription in Antigravity/Codex, or available API keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`). |
 | `--model` | Model slug / name | Default per backend | Model to use (primarily for OpenRouter: default `bytedance-seed/seedream-4.5`, `black-forest-labs/flux-1-schnell`, `krea/krea-image`, `qwen/qwen-image`, `riverflow`, etc.). |
 | `--output` | Directory path | `./` | Where to save generated images |
-| `--prefix` | String | `visual-explainer` | Filename prefix |
+| `--prefix` | String | `visualkan` | Filename prefix |
 
 ### Default sizes by style
 
@@ -405,7 +417,7 @@ Review the src/ directory structure and key modules, then /visual-explainer --st
 ## How It Works
 
 1. **Backend detection** — Auto-detects native subscription capability (Antigravity/Codex `generate_image`) or available API keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`) and reports which backend will be used
-2. **Content analysis** — The skill deeply analyzes your input to extract core concepts, sub-topics, relationships, visual metaphors, and an optimal layout strategy
+2. **Content analysis** — The skill deeply analyzes your input to extract the core concept, sections, relationships, visual metaphors, and an optimal layout strategy
 3. **Prompt construction** — A detailed 400-800 word prompt is built using style-specific templates that specify exact spatial positions, icons, colors, typography, connections, and decorative elements
 4. **Image generation** — The prompt is processed by native subscription tools (`generate_image`), OpenAI gpt-image-2, Gemini Nano Banana 2, or OpenRouter models (SeeDream, Flux, Krea, RiverFlow, QwenImage, etc.)
 5. **Structured output** — A text summary of sections, relationships, and backend used is provided alongside the image
