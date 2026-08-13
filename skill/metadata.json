@@ -1,0 +1,50 @@
+{
+  "name": "visual-explainer",
+  "version": "1.4.0",
+  "description": "Generate visual explanations (whiteboard, infographic, presentation, diagram, mindmap, mockup) from any content using native subscription capabilities (Antigravity/Codex) or image generation APIs (OpenAI, Gemini, OpenRouter)",
+  "author": {
+    "name": "Eric Blue",
+    "url": "https://eric-blue.com"
+  },
+  "license": "MIT",
+  "created": "2026-04-01",
+  "updated": "2026-08-08",
+  "keywords": [
+    "visual-explainer",
+    "whiteboard",
+    "infographic",
+    "mindmap",
+    "mockup",
+    "wireframe",
+    "diagram",
+    "image-generation",
+    "gpt-image",
+    "nano-banana",
+    "flux",
+    "krea",
+    "seedream"
+  ],
+  "dependencies": {
+    "runtime": [
+      "jq"
+    ],
+    "env": [
+      "OPENAI_API_KEY",
+      "GEMINI_API_KEY",
+      "OPENROUTER_API_KEY"
+    ],
+    "skills": [
+      "generate-images"
+    ]
+  },
+  "styles": [
+    "whiteboard",
+    "infographic",
+    "presentation",
+    "diagram",
+    "mindmap",
+    "mindmap-structured",
+    "mockup"
+  ],
+  "entry": "visual-explainer.md"
+}
