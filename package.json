@@ -1,0 +1,49 @@
+{
+  "name": "visualkan",
+  "version": "0.2.0",
+  "description": "Turn any content into a visual explanation: whiteboard, infographic, presentation, diagram, mind map, or UI mockup. Installs as a skill into AI coding assistants.",
+  "keywords": [
+    "visualkan",
+    "ai-skill",
+    "whiteboard",
+    "infographic",
+    "mindmap",
+    "mockup",
+    "wireframe",
+    "diagram",
+    "image-generation",
+    "claude-code",
+    "codex",
+    "antigravity"
+  ],
+  "homepage": "https://github.com/dapih/visualkan#readme",
+  "bugs": {
+    "url": "https://github.com/dapih/visualkan/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dapih/visualkan.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Davi Muammar",
+    "url": "https://github.com/dapih"
+  },
+  "type": "module",
+  "bin": {
+    "visualkan": "visualkan.mjs"
+  },
+  "files": [
+    "visualkan.mjs",
+    "skill/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test",
+    "version": "node visualkan.mjs sync-version && git add skill/metadata.json"
+  }
+}
