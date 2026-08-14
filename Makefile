@@ -67,14 +67,14 @@ help: ## Show this help
 # ============================================================================
 
 install: check ## Install skill to ~/.claude/skills/
-	@mkdir -p $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
 
 uninstall: ## Remove skill from ~/.claude/skills/
-	@if [ -d $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME) ]; then \
-		rm -rf $(CLAUDE_SKILLS_DIR)/$(SKILL_NAME); \
+	@if [ -d "$(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)" ]; then \
+		rm -rf "$(CLAUDE_SKILLS_DIR)/$(SKILL_NAME)"; \
 		echo "Uninstalled $(SKILL_NAME) from $(CLAUDE_SKILLS_DIR)"; \
 	else \
 		echo "$(SKILL_NAME) not installed in Claude Code"; \
@@ -84,10 +84,10 @@ version: ## Print current version
 	@echo $(VERSION)
 
 check: ## Verify skill files and dependencies
-	@if [ ! -f $(SKILL_FILE) ]; then \
+	@if [ ! -f "$(SKILL_FILE)" ]; then \
 		echo "Error: $(SKILL_FILE) not found"; exit 1; \
 	fi
-	@if [ ! -f $(METADATA_FILE) ]; then \
+	@if [ ! -f "$(METADATA_FILE)" ]; then \
 		echo "Error: $(METADATA_FILE) not found"; exit 1; \
 	fi
 	@command -v jq >/dev/null 2>&1 || { echo "Error: jq is required (brew install jq)"; exit 1; }
@@ -118,14 +118,14 @@ info: ## Show skill metadata
 # ============================================================================
 
 openclaw-install: check ## Install skill to ~/clawd/skills/
-	@mkdir -p $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
 
 openclaw-uninstall: ## Remove skill from ~/clawd/skills/
-	@if [ -d $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME) ]; then \
-		rm -rf $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME); \
+	@if [ -d "$(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)" ]; then \
+		rm -rf "$(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)"; \
 		echo "Uninstalled $(SKILL_NAME) from $(OPENCLAW_SKILLS_DIR)"; \
 	else \
 		echo "$(SKILL_NAME) not installed in OpenClaw"; \
@@ -136,7 +136,7 @@ openclaw-check: ## Check if skill is installed in OpenClaw
 	@echo "====================="
 	@echo "Skills directory: $(OPENCLAW_SKILLS_DIR)"
 	@echo ""
-	@if [ -f $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md ]; then \
+	@if [ -f "$(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md" ]; then \
 		echo "$(SKILL_NAME): INSTALLED"; \
 		echo "  Location: $(OPENCLAW_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"; \
 	else \
@@ -149,14 +149,14 @@ openclaw-check: ## Check if skill is installed in OpenClaw
 # ============================================================================
 
 antigravity-install: check ## Install skill globally to ~/.gemini/config/skills/
-	@mkdir -p $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
 
 antigravity-uninstall: ## Remove skill from ~/.gemini/config/skills/
-	@if [ -d $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME) ]; then \
-		rm -rf $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME); \
+	@if [ -d "$(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)" ]; then \
+		rm -rf "$(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)"; \
 		echo "Uninstalled $(SKILL_NAME) from Antigravity ($(ANTIGRAVITY_SKILLS_DIR))"; \
 	else \
 		echo "$(SKILL_NAME) not installed in Antigravity global scope"; \
@@ -167,7 +167,7 @@ antigravity-check: ## Check if skill is installed in Antigravity
 	@echo "========================"
 	@echo "Skills directory: $(ANTIGRAVITY_SKILLS_DIR)"
 	@echo ""
-	@if [ -f $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md ]; then \
+	@if [ -f "$(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md" ]; then \
 		echo "$(SKILL_NAME): INSTALLED"; \
 		echo "  Location: $(ANTIGRAVITY_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"; \
 	else \
@@ -180,14 +180,14 @@ antigravity-check: ## Check if skill is installed in Antigravity
 # ============================================================================
 
 gemini-install: check ## Install skill globally to ~/.gemini/skills/
-	@mkdir -p $(GEMINI_SKILLS_DIR)/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(GEMINI_SKILLS_DIR)/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
 
 gemini-uninstall: ## Remove skill from ~/.gemini/skills/
-	@if [ -d $(GEMINI_SKILLS_DIR)/$(SKILL_NAME) ]; then \
-		rm -rf $(GEMINI_SKILLS_DIR)/$(SKILL_NAME); \
+	@if [ -d "$(GEMINI_SKILLS_DIR)/$(SKILL_NAME)" ]; then \
+		rm -rf "$(GEMINI_SKILLS_DIR)/$(SKILL_NAME)"; \
 		echo "Uninstalled $(SKILL_NAME) from Gemini CLI ($(GEMINI_SKILLS_DIR))"; \
 	else \
 		echo "$(SKILL_NAME) not installed in Gemini CLI"; \
@@ -198,7 +198,7 @@ gemini-check: ## Check if skill is installed in Gemini CLI
 	@echo "======================="
 	@echo "Skills directory: $(GEMINI_SKILLS_DIR)"
 	@echo ""
-	@if [ -f $(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md ]; then \
+	@if [ -f "$(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md" ]; then \
 		echo "$(SKILL_NAME): INSTALLED"; \
 		echo "  Location: $(GEMINI_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"; \
 	else \
@@ -211,14 +211,14 @@ gemini-check: ## Check if skill is installed in Gemini CLI
 # ============================================================================
 
 codex-install: check ## Install skill globally to ~/.codex/skills/
-	@mkdir -p $(CODEX_SKILLS_DIR)/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(CODEX_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(CODEX_SKILLS_DIR)/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(CODEX_SKILLS_DIR)/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(CODEX_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(CODEX_SKILLS_DIR)/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(CODEX_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
 
 codex-uninstall: ## Remove skill from ~/.codex/skills/
-	@if [ -d $(CODEX_SKILLS_DIR)/$(SKILL_NAME) ]; then \
-		rm -rf $(CODEX_SKILLS_DIR)/$(SKILL_NAME); \
+	@if [ -d "$(CODEX_SKILLS_DIR)/$(SKILL_NAME)" ]; then \
+		rm -rf "$(CODEX_SKILLS_DIR)/$(SKILL_NAME)"; \
 		echo "Uninstalled $(SKILL_NAME) from Codex CLI ($(CODEX_SKILLS_DIR))"; \
 	else \
 		echo "$(SKILL_NAME) not installed in Codex CLI"; \
@@ -229,7 +229,7 @@ codex-check: ## Check if skill is installed in Codex CLI
 	@echo "======================"
 	@echo "Skills directory: $(CODEX_SKILLS_DIR)"
 	@echo ""
-	@if [ -f $(CODEX_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md ]; then \
+	@if [ -f "$(CODEX_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md" ]; then \
 		echo "$(SKILL_NAME): INSTALLED"; \
 		echo "  Location: $(CODEX_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"; \
 	else \
@@ -242,14 +242,14 @@ codex-check: ## Check if skill is installed in Codex CLI
 # ============================================================================
 
 agents-install: check ## Install skill globally to ~/.agents/skills/ (Open Agent Standard)
-	@mkdir -p $(AGENTS_SKILLS_DIR)/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(AGENTS_SKILLS_DIR)/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"
 
 agents-uninstall: ## Remove skill from ~/.agents/skills/
-	@if [ -d $(AGENTS_SKILLS_DIR)/$(SKILL_NAME) ]; then \
-		rm -rf $(AGENTS_SKILLS_DIR)/$(SKILL_NAME); \
+	@if [ -d "$(AGENTS_SKILLS_DIR)/$(SKILL_NAME)" ]; then \
+		rm -rf "$(AGENTS_SKILLS_DIR)/$(SKILL_NAME)"; \
 		echo "Uninstalled $(SKILL_NAME) from Open Agent Standard ($(AGENTS_SKILLS_DIR))"; \
 	else \
 		echo "$(SKILL_NAME) not installed in Open Agent Standard global scope"; \
@@ -260,7 +260,7 @@ agents-check: ## Check if skill is installed in ~/.agents/skills/
 	@echo "================================"
 	@echo "Skills directory: $(AGENTS_SKILLS_DIR)"
 	@echo ""
-	@if [ -f $(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md ]; then \
+	@if [ -f "$(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md" ]; then \
 		echo "$(SKILL_NAME): INSTALLED"; \
 		echo "  Location: $(AGENTS_SKILLS_DIR)/$(SKILL_NAME)/SKILL.md"; \
 	else \
@@ -279,29 +279,29 @@ project-install: check ## Install skill to target project scope (.agents/skills/
 		echo "Notice: Installing to current directory ./.agents/skills/$(SKILL_NAME)"; \
 		echo "        To install to a specific project, pass PROJECT_DIR=/absolute/path/to/target-project"; \
 	fi
-	@mkdir -p $(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)/SKILL.md"
 
 project-uninstall: ## Remove skill from target project scope (.agents/skills/) — pass PROJECT_DIR=/path/to/target-project
-	@if [ -d $(PROJECT_DIR)/.agents/skills/$(SKILL_NAME) ]; then \
-		rm -rf $(PROJECT_DIR)/.agents/skills/$(SKILL_NAME); \
+	@if [ -d "$(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)" ]; then \
+		rm -rf "$(PROJECT_DIR)/.agents/skills/$(SKILL_NAME)"; \
 		echo "Uninstalled $(SKILL_NAME) from $(PROJECT_DIR)/.agents/skills/"; \
 	else \
 		echo "$(SKILL_NAME) not installed in $(PROJECT_DIR)/.agents/skills/"; \
 	fi
 
 gemini-project-install: check ## Install skill to Gemini CLI project scope (.gemini/skills/) — pass PROJECT_DIR=/path/to/target-project
-	@mkdir -p $(PROJECT_DIR)/.gemini/skills/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(PROJECT_DIR)/.gemini/skills/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(PROJECT_DIR)/.gemini/skills/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(PROJECT_DIR)/.gemini/skills/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(PROJECT_DIR)/.gemini/skills/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(PROJECT_DIR)/.gemini/skills/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(PROJECT_DIR)/.gemini/skills/$(SKILL_NAME)/SKILL.md"
 
 codex-project-install: check ## Install skill to Codex CLI project scope (.codex/skills/) — pass PROJECT_DIR=/path/to/target-project
-	@mkdir -p $(PROJECT_DIR)/.codex/skills/$(SKILL_NAME)
-	@cp $(SKILL_FILE) $(PROJECT_DIR)/.codex/skills/$(SKILL_NAME)/SKILL.md
-	@cp $(METADATA_FILE) $(PROJECT_DIR)/.codex/skills/$(SKILL_NAME)/metadata.json
+	@mkdir -p "$(PROJECT_DIR)/.codex/skills/$(SKILL_NAME)"
+	@cp "$(SKILL_FILE)" "$(PROJECT_DIR)/.codex/skills/$(SKILL_NAME)/SKILL.md"
+	@cp "$(METADATA_FILE)" "$(PROJECT_DIR)/.codex/skills/$(SKILL_NAME)/metadata.json"
 	@echo "Installed $(SKILL_NAME) v$(VERSION) to $(PROJECT_DIR)/.codex/skills/$(SKILL_NAME)/SKILL.md"
 
 # --- Version management ---

@@ -475,6 +475,7 @@ Multi-frame mode generates multiple images (3-5), so costs multiply accordingly.
 - Removed the dead `generate-images` dependency from `metadata.json`
 - `--draw-level` now applies to every style. `presentation`, `diagram`, `mindmap`, and `mindmap-structured` previously ignored it
 - `--model` is now rejected with any backend other than `openrouter`, instead of being accepted and silently discarded ([ADR 0003](docs/adr/0003-model-flag-is-openrouter-only.md))
+- Every install and uninstall target now quotes its paths, so the Makefile works when the home directory contains a space. This affected all seven platforms on Windows
 
 ## Upstream Release History
 
