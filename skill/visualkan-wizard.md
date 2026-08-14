@@ -26,7 +26,7 @@ Never write the value lists into this file, and never recite them from memory. T
 If `visualkan` is not on PATH, stop and tell the user to run this:
 
 ```bash
-npm install -g visualkan
+npm install -g @dapih/visualkan
 ```
 
 ## Step 2: Ask for the Controls

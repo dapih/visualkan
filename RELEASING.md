@@ -48,8 +48,8 @@ Add an entry to the Version History table in [README.md](README.md), and a secti
 ### 4. Test the install
 
 ```bash
-npm pack                                    # produces visualkan-<version>.tgz
-npm install -g ./visualkan-<version>.tgz
+npm pack                                       # produces dapih-visualkan-<version>.tgz
+npm install -g ./dapih-visualkan-<version>.tgz
 visualkan status
 visualkan install claude
 ```

@@ -108,7 +108,7 @@ Visualkan needs [Node.js](https://nodejs.org) 24 or later. Nothing else.
 ### 1. Install the CLI
 
 ```bash
-npm install -g visualkan
+npm install -g @dapih/visualkan
 ```
 
 ### 2. Install the skill into your platform
@@ -156,7 +156,7 @@ visualkan help                 # full usage
 ### Upgrading
 
 ```bash
-npm install -g visualkan@latest
+npm install -g @dapih/visualkan@latest
 visualkan install claude
 ```
 
@@ -388,10 +388,19 @@ Multi-frame mode generates multiple images (3-5), so costs multiply accordingly.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.4.1 | 2026-08-14 | The npm package moved to the `@dapih/visualkan` scope |
 | 0.4.0 | 2026-08-14 | A wizard skill, a clarification step, and `visualkan controls` |
 | 0.3.0 | 2026-08-14 | Fixes found by the first live generation run, and draw-level for infographic |
 | 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### v0.4.1 — The package moved to a scope
+
+The npm package is now `@dapih/visualkan`. The unscoped `visualkan` package is deprecated and points here.
+
+- `npm install -g @dapih/visualkan` replaces `npm install -g visualkan` everywhere the docs and the skills state it
+- The CLI command stays `visualkan`. Nothing about install targets, flags, or output changes
+- `package.json` carries `publishConfig.access: public`, because a scoped package publishes private by default
 
 ### v0.4.0 — Guidance for the user who does not know the controls
 

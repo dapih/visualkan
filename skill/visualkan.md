@@ -72,7 +72,7 @@ Do NOT do any of the following yourself:
 If `visualkan` is not on PATH, stop and tell the user to run this:
 
 ```bash
-npm install -g visualkan
+npm install -g @dapih/visualkan
 ```
 
 The CLI prints the backend and model it selected to stderr before it calls the API. Pass that line through to the user.
@@ -708,7 +708,7 @@ If any item is missing, add it before generating.
 The CLI owns every error about backends, API keys, and models. Its messages are written for the user, so show them unchanged and do not translate or summarise them. Your own error handling covers only these cases:
 
 - If no content is provided, run Step 3
-- If `visualkan` is not on PATH and no `generate_image` tool exists, tell the user to run `npm install -g visualkan`
+- If `visualkan` is not on PATH and no `generate_image` tool exists, tell the user to run `npm install -g @dapih/visualkan`
 - If the CLI exits non-zero, print its message and stop. Do not retry with another backend.
 - If the content is too complex for the chosen complexity level, suggest upgrading to `detailed`
 - If the content is too thin for the chosen complexity level, run Step 3. Never invent sections to fill the floor.
