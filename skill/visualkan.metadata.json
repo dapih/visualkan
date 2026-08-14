@@ -1,6 +1,6 @@
 {
   "name": "visualkan",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Generate visual explanations (whiteboard, infographic, presentation, diagram, mindmap, mockup) from any content using native subscription capabilities (Antigravity/Codex) or image generation APIs (OpenAI, Gemini, OpenRouter)",
   "author": {
     "name": "Davi Muammar",
