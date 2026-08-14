@@ -374,6 +374,10 @@ Until now, every test stopped before the network call, so no image had ever been
 - **The saved file lied about its format.** OpenRouter returns JPEG, and the CLI wrote those bytes to a `.png` name. Every backend is now asked for PNG through `output_format`, and the extension is chosen from the returned bytes, because a provider can ignore that request. `bytedance-seed/seedream-4.5` still answers with JPEG, and the file is now named `.jpg`
 - **A failed generation reported exit code 127, not 1.** On Windows, `process.exit()` during a `fetch` teardown aborts libuv and prints a C-level assertion after the error message. The CLI now sets `process.exitCode` and lets Node drain
 - **The reported image size was false for OpenRouter.** That API takes an aspect ratio, and each model sets its own pixel count, so `--size 1536x1024` produced a 3072x2048 image. The CLI now reports `aspect 3:2` for that backend instead of claiming a pixel size
+Two older gaps closed in the same pass.
+
+- **The infographic style now honours `--draw-level`.** It had one branch, and the rest of the template hardcoded a polished result: "flat-design icons, NOT hand-drawn" and "this is a polished publication piece". Asking for `--style infographic --draw-level sketch` therefore produced a prompt that argued with itself. The canvas, header, palette, section badges, containers, icons, connectors, callouts, typography, and overall feel now all branch, and the polished-only wording sits inside the polished branch
+- **`examples/` is deleted.** All 38 MB came from upstream's `visual-explainer`, predated the CLI, and no file in the repository linked to them
 - **35 tests**, up from 27
 - **GitHub Actions** runs the tests on Linux and Windows for every push and pull request
 
