@@ -80,17 +80,15 @@ export GEMINI_API_KEY="AIza..."
 export OPENROUTER_API_KEY="sk-or-v1-..."
 ```
 
-### 3. jq
+### 3. Node.js 24 or later
 
-The skill uses `jq` to parse JSON responses from image generation APIs:
+Visualkan ships as an npm package, and the `visualkan` CLI performs the API calls:
 
 ```bash
-# macOS
-brew install jq
-
-# Ubuntu/Debian
-sudo apt-get install jq
+node --version    # must be v24 or later
 ```
+
+Antigravity and Codex users who rely on the native subscription backend still need Node to install the skill, but the CLI is not involved in generation.
 
 ## Compatibility
 
@@ -105,165 +103,59 @@ This skill supports any Skills-compatible agent or CLI tool that supports markdo
 
 ## Installation
 
-### 1. Google Antigravity
+Visualkan needs [Node.js](https://nodejs.org) 24 or later. Nothing else.
 
-- **Global scope**: `~/.gemini/config/skills/` (macOS/Linux) or `%USERPROFILE%\.gemini\config\skills\` (Windows)
-  ```bash
-  make antigravity-install
-  ```
-- **Project scope**: `<project-root>/.agents/skills/`
-  - **Makefile**:
-    ```bash
-    make project-install PROJECT_DIR=/absolute/path/to/your-project
-    ```
-  - **Manual copy**:
-    ```bash
-    # macOS / Linux
-    mkdir -p /path/to/your-project/.agents/skills/visualkan
-    cp skill/visualkan.md /path/to/your-project/.agents/skills/visualkan/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.agents/skills/visualkan/metadata.json
-
-    # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.agents\skills\visualkan"
-    Copy-Item skill\visualkan.md "C:\path\to\your-project\.agents\skills\visualkan\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.agents\skills\visualkan\metadata.json"
-    ```
-
-### 2. Gemini CLI
-
-- **Global scope**: `~/.gemini/skills/` (macOS/Linux) or `%USERPROFILE%\.gemini\skills\` (Windows)
-  ```bash
-  make gemini-install
-  ```
-- **Project scope**: `<project-root>/.gemini/skills/`
-  - **Makefile**:
-    ```bash
-    make gemini-project-install PROJECT_DIR=/absolute/path/to/your-project
-    ```
-  - **Manual copy**:
-    ```bash
-    # macOS / Linux
-    mkdir -p /path/to/your-project/.gemini/skills/visualkan
-    cp skill/visualkan.md /path/to/your-project/.gemini/skills/visualkan/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.gemini/skills/visualkan/metadata.json
-
-    # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.gemini\skills\visualkan"
-    Copy-Item skill\visualkan.md "C:\path\to\your-project\.gemini\skills\visualkan\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.gemini\skills\visualkan\metadata.json"
-    ```
-
-### 3. Codex CLI
-
-- **Global scope**: `~/.codex/skills/` (macOS/Linux) or `%USERPROFILE%\.codex\skills\` (Windows)
-  ```bash
-  make codex-install
-  ```
-- **Project scope**: `<project-root>/.codex/skills/`
-  - **Makefile**:
-    ```bash
-    make codex-project-install PROJECT_DIR=/absolute/path/to/your-project
-    ```
-  - **Manual copy**:
-    ```bash
-    # macOS / Linux
-    mkdir -p /path/to/your-project/.codex/skills/visualkan
-    cp skill/visualkan.md /path/to/your-project/.codex/skills/visualkan/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.codex/skills/visualkan/metadata.json
-
-    # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.codex\skills\visualkan"
-    Copy-Item skill\visualkan.md "C:\path\to\your-project\.codex\skills\visualkan\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.codex\skills\visualkan\metadata.json"
-    ```
-
-### 4. Open Agent Standard (agentskills.io)
-*Supported by: ChatGPT desktop (including Codex desktop), Cursor, OpenCode, GitHub Copilot (in VS Code), Windsurf, Roo Code, Trae*
-
-- **Global scope**: `~/.agents/skills/` (macOS/Linux) or `%USERPROFILE%\.agents\skills\` (Windows)
-  ```bash
-  make agents-install
-  ```
-- **Project scope**: `<project-root>/.agents/skills/`
-  - **Makefile**:
-    ```bash
-    make project-install PROJECT_DIR=/absolute/path/to/your-project
-    ```
-  - **Manual copy**:
-    ```bash
-    # macOS / Linux
-    mkdir -p /path/to/your-project/.agents/skills/visualkan
-    cp skill/visualkan.md /path/to/your-project/.agents/skills/visualkan/SKILL.md
-    cp skill/metadata.json /path/to/your-project/.agents/skills/visualkan/metadata.json
-
-    # Windows (PowerShell)
-    New-Item -ItemType Directory -Force -Path "C:\path\to\your-project\.agents\skills\visualkan"
-    Copy-Item skill\visualkan.md "C:\path\to\your-project\.agents\skills\visualkan\SKILL.md"
-    Copy-Item skill\metadata.json "C:\path\to\your-project\.agents\skills\visualkan\metadata.json"
-    ```
-
-### 5. Claude Code
-
-- **Global scope**: `~/.claude/skills/` (macOS/Linux) or `%USERPROFILE%\.claude\skills\` (Windows)
-  ```bash
-  make install
-  ```
-- **Manual copy**:
-  ```bash
-  # macOS / Linux
-  mkdir -p ~/.claude/skills/visualkan
-  cp skill/visualkan.md ~/.claude/skills/visualkan/SKILL.md
-  cp skill/metadata.json ~/.claude/skills/visualkan/metadata.json
-
-  # Windows (PowerShell)
-  New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\skills\visualkan"
-  Copy-Item skill\visualkan.md "$env:USERPROFILE\.claude\skills\visualkan\SKILL.md"
-  Copy-Item skill\metadata.json "$env:USERPROFILE\.claude\skills\visualkan\metadata.json"
-  ```
-
-### 6. OpenClaw
+### 1. Install the CLI
 
 ```bash
-make openclaw-install
+npm install -g visualkan
 ```
-Or manually copy `skill/visualkan.md` to `~/clawd/skills/visualkan/SKILL.md`.
 
-### Makefile targets
+### 2. Install the skill into your platform
 
-| Target | Description | Scope / Path |
-|--------|-------------|--------------|
-| **Antigravity** | | |
-| `make antigravity-install` | Install to global scope | `~/.gemini/config/skills/` |
-| `make antigravity-uninstall` | Remove from global scope | `~/.gemini/config/skills/` |
-| `make antigravity-check` | Check status | `~/.gemini/config/skills/` |
-| **Gemini CLI** | | |
-| `make gemini-install` | Install to global scope | `~/.gemini/skills/` |
-| `make gemini-uninstall` | Remove from global scope | `~/.gemini/skills/` |
-| `make gemini-check` | Check status | `~/.gemini/skills/` |
-| **Codex CLI** | | |
-| `make codex-install` | Install to global scope | `~/.codex/skills/` |
-| `make codex-uninstall` | Remove from global scope | `~/.codex/skills/` |
-| `make codex-check` | Check status | `~/.codex/skills/` |
-| **Open Agent Standard** | | *(Cursor / Copilot / ChatGPT desktop / OpenCode / Windsurf / Roo Code / Trae)* |
-| `make agents-install` | Install to global scope | `~/.agents/skills/` |
-| `make agents-uninstall` | Remove from global scope | `~/.agents/skills/` |
-| `make agents-check` | Check status | `~/.agents/skills/` |
-| **Project Scope** | | |
-| `make project-install` | Install to target project scope | `<PROJECT_DIR>/.agents/skills/` |
-| `make project-uninstall` | Remove from target project scope | `<PROJECT_DIR>/.agents/skills/` |
-| `make gemini-project-install` | Install to Gemini project scope | `<PROJECT_DIR>/.gemini/skills/` |
-| `make codex-project-install` | Install to Codex project scope | `<PROJECT_DIR>/.codex/skills/` |
-| **Claude Code** | | |
-| `make install` | Install to global scope | `~/.claude/skills/` |
-| `make uninstall` | Remove from global scope | `~/.claude/skills/` |
-| **OpenClaw** | | |
-| `make openclaw-install` | Install to global scope | `~/clawd/skills/` |
-| `make openclaw-uninstall` | Remove from global scope | `~/clawd/skills/` |
-| `make openclaw-check` | Check status | `~/clawd/skills/` |
-| **General** | | |
-| `make info` | Show skill metadata | — |
-| `make version` | Print current version | — |
-| `make check` | Verify prerequisites | — |
+```bash
+visualkan install claude
+```
+
+Replace `claude` with your platform:
+
+| Platform | Command | Installs to |
+|---|---|---|
+| Claude Code | `visualkan install claude` | `~/.claude/skills/visualkan/` |
+| Antigravity | `visualkan install antigravity` | `~/.gemini/config/skills/visualkan/` |
+| Gemini CLI | `visualkan install gemini` | `~/.gemini/skills/visualkan/` |
+| Codex CLI | `visualkan install codex` | `~/.codex/skills/visualkan/` |
+| Open Agent Standard | `visualkan install agents` | `~/.agents/skills/visualkan/` |
+| OpenClaw | `visualkan install openclaw` | `~/clawd/skills/visualkan/` |
+
+Use `visualkan install agents` for Cursor, GitHub Copilot, ChatGPT desktop, OpenCode, Windsurf, Roo Code, and Trae.
+
+### Project scope
+
+To install into one project instead of your home directory, pass `--project`:
+
+```bash
+visualkan install claude --project /path/to/your-project
+```
+
+OpenClaw supports global scope only.
+
+### Other commands
+
+```bash
+visualkan status               # show where the skill is installed
+visualkan uninstall claude     # remove it
+visualkan help                 # full usage
+```
+
+### Upgrading
+
+```bash
+npm install -g visualkan@latest
+visualkan install claude
+```
+
+The second command overwrites the installed skill with the new version. Run it for each platform you use.
 
 ## Usage
 
@@ -463,7 +355,20 @@ Multi-frame mode generates multiple images (3-5), so costs multiply accordingly.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### v0.2.0 — The Visualkan CLI
+
+Installing Visualkan required `make` and `jq`. Generating an image required `curl`, `jq`, and `base64`. On Windows that meant four Unix tools to copy two files and decode a PNG. Now it needs Node.
+
+- **New `visualkan` CLI**, published to npm with zero runtime dependencies: `install`, `uninstall`, `status`, and `generate`
+- **`make` and `jq` are gone.** The Makefile is deleted. npm owns version, tag, and publish
+- **The skill no longer shells out.** It calls `visualkan generate` instead of building `curl` commands and parsing them with `jq`. `SKILL.md` drops from 815 to 684 lines, and the style templates are untouched
+- **Prompts are passed by file**, never as command-line arguments. The previous design pasted a 400-800 word prompt into a single-quoted shell string containing JSON, which produced invalid JSON for any prompt containing a double quote. Since the templates instruct that every label be quoted, this affected essentially every generation
+- **[ADR 0003](docs/adr/0003-model-flag-is-openrouter-only.md) is enforced in code.** The `--model` rejection was prose asking the agent to refuse; it is now a thrown error
+- **27 tests** using the built-in `node:test` runner, with no devDependencies
+- Requires Node 24 or later ([ADR 0004](docs/adr/0004-node-cli-owns-transport-and-policy.md))
 
 ### v0.1.0 — Fork and Identity
 

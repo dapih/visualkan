@@ -1,83 +1,87 @@
 # Releasing
 
-This document covers how to cut a new release of the visualkan skill.
+This document covers how to cut a new release of Visualkan. npm owns the version, the git tag, and publication. There is no Makefile.
 
 ## Versioning
 
-This project follows [Semantic Versioning](https://semver.org/):
+Visualkan follows [Semantic Versioning](https://semver.org/):
 
-- **Patch** (`1.0.x`) — bug fixes, prompt tweaks, typo corrections
-- **Minor** (`1.x.0`) — new styles, new flags, new features (backward-compatible)
+- **Patch** (`0.2.x`) — bug fixes, prompt tweaks, typo corrections
+- **Minor** (`0.x.0`) — new styles, new flags, new features that stay backward compatible
 - **Major** (`x.0.0`) — breaking changes to flags, removed styles, changed output format
 
-The version is stored in `skill/metadata.json` and managed via Makefile targets.
+Visualkan restarted its version line at 0.1.0 and does not track upstream `visual-explainer` numbers. See [ADR 0001](docs/adr/0001-fork-visual-explainer-as-visualkan.md).
 
-## Release Process
+`package.json` holds the version. `skill/metadata.json` is written from it automatically, so never edit that version by hand.
 
-### 1. Verify everything is clean
+## Release process
+
+### 1. Verify the tree is clean
 
 ```bash
 git status              # no uncommitted changes
-make check              # prerequisites pass
-make info               # review current version
+npm test                # all tests pass
+npm pack --dry-run      # review what will ship
 ```
+
+`npm pack --dry-run` must list only `visualkan.mjs`, `skill/`, `README.md`, `LICENSE`, and `package.json`. If `examples/` appears, the `files` field in `package.json` is broken. That directory is 38 MB.
 
 ### 2. Bump the version
 
-Pick the appropriate bump level:
-
 ```bash
-make bump-patch         # 1.0.0 → 1.0.1
-make bump-minor         # 1.0.0 → 1.1.0
-make bump-major         # 1.0.0 → 2.0.0
-
-# Or set an exact version:
-make set-version V=2.1.0
+npm version patch       # 0.2.0 -> 0.2.1
+npm version minor       # 0.2.0 -> 0.3.0
+npm version major       # 0.2.0 -> 1.0.0
 ```
 
-This updates `version` and `updated` date in `skill/metadata.json`.
+One command does four things:
 
-### 3. Update the changelog (if applicable)
+1. Runs `npm test` through the `preversion` hook. A failing test stops the release.
+2. Writes the new version into `package.json`.
+3. Runs `visualkan sync-version` through the `version` hook, which copies the version and today's date into `skill/metadata.json` and stages it.
+4. Creates the commit and an annotated git tag.
 
-If you maintain a changelog, add an entry for the new version describing what changed.
+### 3. Update the changelog
+
+Add an entry to the Version History table in [README.md](README.md), and a section describing what changed.
 
 ### 4. Test the install
 
 ```bash
-make install            # installs to ~/.claude/skills/
-make openclaw-install   # installs to ~/clawd/skills/ (if using OpenClaw)
+npm pack                                    # produces visualkan-<version>.tgz
+npm install -g ./visualkan-<version>.tgz
+visualkan status
+visualkan install claude
 ```
 
-Open a new Claude Code (or OpenClaw) session and verify `/visualkan` works as expected.
+Open a new session on that platform and confirm that the skill loads and generates.
 
-### 5. Commit, tag, and push
+### 5. Push and publish
 
 ```bash
-make release            # commits metadata + skill, creates git tag
 git push && git push --tags
+npm publish
 ```
 
-The `make release` target:
-- Stages `skill/metadata.json` and `skill/visualkan.md`
-- Creates a commit: `Release v<version>`
-- Creates an annotated git tag: `v<version>`
+Publication is public and permanent. Verify step 1 and step 4 before you run `npm publish`.
 
 ### 6. Create a GitHub release (optional)
 
 ```bash
-gh release create v$(make version) \
-  --title "v$(make version)" \
+gh release create "v$(node -p "require('./package.json').version")" \
+  --title "v$(node -p "require('./package.json').version")" \
   --notes "Description of changes"
 ```
 
-## Quick Reference
+## Quick reference
 
 | Task | Command |
 |------|---------|
-| Check current version | `make version` |
-| Bump patch | `make bump-patch` |
-| Bump minor | `make bump-minor` |
-| Bump major | `make bump-major` |
-| Set exact version | `make set-version V=1.2.3` |
-| Show full info | `make info` |
-| Tag and commit release | `make release` |
+| Show current version | `node -p "require('./package.json').version"` |
+| Run tests | `npm test` |
+| Review package contents | `npm pack --dry-run` |
+| Bump patch | `npm version patch` |
+| Bump minor | `npm version minor` |
+| Bump major | `npm version major` |
+| Publish | `npm publish` |
+| Sync metadata.json by hand | `node visualkan.mjs sync-version` |
