@@ -21,6 +21,8 @@ The core insight is that image generation quality depends almost entirely on pro
 
 Visualkan is a fork of the `visual-explainer` skill by [Eric Blue](https://about.ericblue.com) ([GitHub](https://github.com/ericblue)). It is used under the MIT license. See [LICENSE](LICENSE) for the original copyright notice, and [ADR 0001](docs/adr/0001-fork-visual-explainer-as-visualkan.md) for why this project forked.
 
+Visualkan restarted its version numbering at 0.1.0. Releases numbered 1.0.0 through 1.4.0 belong to `visual-explainer`. They are listed under [Upstream Release History](#upstream-release-history).
+
 ## Prerequisites
 
 ### 1. AI Assistant Platform
@@ -461,11 +463,20 @@ Multi-frame mode generates multiple images (3-5), so costs multiply accordingly.
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 1.4.0 | 2026-08-08 | Antigravity & Codex support, keyless native subscription image generation, and OpenRouter API integration |
-| 1.3.0 | 2026-04-02 | Mockup/wireframe style with device frames |
-| 1.2.0 | 2026-04-02 | Gemini/Nano Banana 2 backend support |
-| 1.1.0 | 2026-04-01 | Mermaid diagram conversion support |
-| 1.0.0 | 2026-04-01 | Initial release |
+| 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### v0.1.0 — Fork and Identity
+
+- Renamed the skill, the command, and the documentation from `visual-explainer` to `visualkan`
+- Reset the version line to 0.1.0, independent of upstream ([ADR 0001](docs/adr/0001-fork-visual-explainer-as-visualkan.md))
+- Claude Code now installs a skill to `~/.claude/skills/`, matching every other supported platform
+- Adopted one term per concept across the documents. `Section` replaces `concept`, `sub-topic`, and `Central Topic` (see [CONTEXT.md](CONTEXT.md))
+- Corrected the `--draw-level` coverage note, which named `presentation` (which had no branches) and omitted `infographic` and `mockup` (which had them)
+- Removed the dead `generate-images` dependency from `metadata.json`
+
+## Upstream Release History
+
+The releases below belong to `visual-explainer`, not to Visualkan. They are kept for provenance. See [Credits](#credits).
 
 ### v1.4.0 — Antigravity, Codex & OpenRouter Support
 

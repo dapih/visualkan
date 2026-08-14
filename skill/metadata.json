@@ -1,14 +1,14 @@
 {
   "name": "visualkan",
-  "version": "1.4.0",
+  "version": "0.1.0",
   "description": "Generate visual explanations (whiteboard, infographic, presentation, diagram, mindmap, mockup) from any content using native subscription capabilities (Antigravity/Codex) or image generation APIs (OpenAI, Gemini, OpenRouter)",
   "author": {
-    "name": "Eric Blue",
-    "url": "https://eric-blue.com"
+    "name": "Davi Muammar",
+    "url": "https://github.com/dapih"
   },
   "license": "MIT",
-  "created": "2026-04-01",
-  "updated": "2026-08-08",
+  "created": "2026-08-13",
+  "updated": "2026-08-14",
   "keywords": [
     "visualkan",
     "whiteboard",
