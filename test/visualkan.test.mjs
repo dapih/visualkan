@@ -10,6 +10,7 @@ import {
   resolveSize,
   sizeToAspect,
   extractImage,
+  imageExtension,
   nextOutputPath,
   targetDir,
   PLATFORMS,
@@ -101,21 +102,33 @@ test('sizeToAspect maps orientation correctly', () => {
 // --- response parsing ------------------------------------------------------
 
 test('extractImage reads base64 from an OpenAI-shaped response', () => {
-  assert.deepEqual(extractImage('openai', { data: [{ b64_json: 'QUJD' }] }), { b64: 'QUJD' });
+  assert.deepEqual(
+    extractImage('openai', { data: [{ b64_json: 'QUJD' }] }),
+    { b64: 'QUJD', mediaType: null }
+  );
+});
+
+test('extractImage carries the media type OpenRouter reports', () => {
+  assert.deepEqual(
+    extractImage('openrouter', { data: [{ b64_json: 'QUJD', media_type: 'image/jpeg' }] }),
+    { b64: 'QUJD', mediaType: 'image/jpeg' }
+  );
 });
 
 test('extractImage falls back to a URL when OpenRouter returns one', () => {
   assert.deepEqual(
     extractImage('openrouter', { data: [{ url: 'https://example.test/a.png' }] }),
-    { url: 'https://example.test/a.png' }
+    { url: 'https://example.test/a.png', mediaType: null }
   );
 });
 
 test('extractImage digs inlineData out of a Gemini response', () => {
   const body = {
-    candidates: [{ content: { parts: [{ text: 'here you go' }, { inlineData: { data: 'QUJD' } }] } }],
+    candidates: [
+      { content: { parts: [{ text: 'here you go' }, { inlineData: { data: 'QUJD', mimeType: 'image/png' } }] } },
+    ],
   };
-  assert.deepEqual(extractImage('gemini', body), { b64: 'QUJD' });
+  assert.deepEqual(extractImage('gemini', body), { b64: 'QUJD', mediaType: 'image/png' });
 });
 
 test('extractImage returns null rather than throwing on an empty response', () => {
@@ -130,6 +143,36 @@ test('base64 payloads decode to real bytes', () => {
   assert.deepEqual(Buffer.from(b64, 'base64'), png);
 });
 
+// --- output format ---------------------------------------------------------
+// OpenRouter answered a live request with JPEG bytes under a .png name. The
+// extension must follow the bytes.
+
+test('imageExtension reads the format out of the magic numbers', () => {
+  assert.equal(imageExtension(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d]), null), 'png');
+  assert.equal(imageExtension(Buffer.from([0xff, 0xd8, 0xff, 0xe0]), null), 'jpg');
+  assert.equal(imageExtension(Buffer.from([0x47, 0x49, 0x46, 0x38, 0x39]), null), 'gif');
+});
+
+test('imageExtension recognises WebP by the tag at offset 8', () => {
+  const webp = Buffer.from('RIFF____WEBPVP8 ', 'latin1');
+  assert.equal(imageExtension(webp, null), 'webp');
+});
+
+test('imageExtension trusts the bytes over a media type that disagrees', () => {
+  const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+  assert.equal(imageExtension(jpeg, 'image/png'), 'jpg');
+});
+
+test('imageExtension falls back to the reported media type when bytes are unknown', () => {
+  const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>', 'utf8');
+  assert.equal(imageExtension(svg, 'image/svg+xml'), 'svg');
+});
+
+test('imageExtension defaults to png when nothing identifies the format', () => {
+  assert.equal(imageExtension(Buffer.from([0x00, 0x01, 0x02, 0x03]), null), 'png');
+  assert.equal(imageExtension(null, null), 'png');
+});
+
 // --- output naming ---------------------------------------------------------
 
 test('nextOutputPath starts at 1 when nothing exists', () => {
@@ -139,6 +182,15 @@ test('nextOutputPath starts at 1 when nothing exists', () => {
 test('nextOutputPath skips names already taken', () => {
   const taken = new Set([join('out', 'visualkan-1.png'), join('out', 'visualkan-2.png')]);
   assert.equal(nextOutputPath('out', 'visualkan', (p) => taken.has(p)), join('out', 'visualkan-3.png'));
+});
+
+test('nextOutputPath uses the extension it is given', () => {
+  assert.equal(nextOutputPath('out', 'visualkan', () => false, 'jpg'), join('out', 'visualkan-1.jpg'));
+});
+
+test('nextOutputPath counts each extension separately', () => {
+  const taken = new Set([join('out', 'visualkan-1.png')]);
+  assert.equal(nextOutputPath('out', 'visualkan', (p) => taken.has(p), 'jpg'), join('out', 'visualkan-1.jpg'));
 });
 
 // --- install targets -------------------------------------------------------

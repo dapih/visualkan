@@ -144,6 +144,9 @@ export function resolveSize({ size, style, device }) {
   return STYLE_SIZES[style] ?? '1536x1024';
 }
 
+// OpenRouter takes a ratio, not pixels. Models set their own pixel floors —
+// seedream-4.5 rejects anything under 3.7 megapixels — so sending explicit
+// pixels breaks per model, while a ratio works with all of them.
 export function sizeToAspect(size) {
   const [w, h] = size.split('x').map(Number);
   if (w === h) return '1:1';
@@ -155,21 +158,58 @@ export function extractImage(backend, body) {
     const parts = body?.candidates?.[0]?.content?.parts ?? [];
     const part = parts.find((p) => p.inlineData?.data);
     if (!part) return null;
-    return { b64: part.inlineData.data };
+    return { b64: part.inlineData.data, mediaType: part.inlineData.mimeType ?? null };
   }
   const first = body?.data?.[0];
   if (!first) return null;
-  if (first.b64_json) return { b64: first.b64_json };
-  if (first.url) return { url: first.url };
+  const mediaType = first.media_type ?? null;
+  if (first.b64_json) return { b64: first.b64_json, mediaType };
+  if (first.url) return { url: first.url, mediaType };
   return null;
 }
 
-export function nextOutputPath(dir, prefix, exists) {
+// --- Output format ---------------------------------------------------------
+// The file name must state the truth about the bytes. Every backend is asked
+// for PNG, but a provider can answer with something else, so the extension is
+// decided after the bytes arrive, not before.
+
+const MEDIA_TYPE_EXTENSIONS = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'image/svg+xml': 'svg',
+};
+
+const MAGIC_NUMBERS = [
+  { ext: 'png', magic: [0x89, 0x50, 0x4e, 0x47] },
+  { ext: 'jpg', magic: [0xff, 0xd8, 0xff] },
+  { ext: 'gif', magic: [0x47, 0x49, 0x46, 0x38] },
+];
+
+function matchesMagic(bytes, magic, offset = 0) {
+  return magic.every((byte, i) => bytes[offset + i] === byte);
+}
+
+export function imageExtension(bytes, mediaType) {
+  if (bytes?.length) {
+    for (const { ext, magic } of MAGIC_NUMBERS) {
+      if (matchesMagic(bytes, magic)) return ext;
+    }
+    // WebP is a RIFF container. The format tag sits at offset 8.
+    if (matchesMagic(bytes, [0x52, 0x49, 0x46, 0x46]) && matchesMagic(bytes, [0x57, 0x45, 0x42, 0x50], 8)) {
+      return 'webp';
+    }
+  }
+  return MEDIA_TYPE_EXTENSIONS[mediaType] ?? 'png';
+}
+
+export function nextOutputPath(dir, prefix, exists, ext = 'png') {
   for (let n = 1; n < 1000; n++) {
-    const candidate = join(dir, `${prefix}-${n}.png`);
+    const candidate = join(dir, `${prefix}-${n}.${ext}`);
     if (!exists(candidate)) return candidate;
   }
-  throw new UserError(`Could not find a free filename for "${prefix}-N.png" in ${dir}.`);
+  throw new UserError(`Could not find a free filename for "${prefix}-N.${ext}" in ${dir}.`);
 }
 
 // --- Install ---------------------------------------------------------------
@@ -257,7 +297,7 @@ async function callBackend(backend, model, prompt, size, env) {
   }
   return postJson('https://openrouter.ai/api/v1/images', {
     headers: { Authorization: `Bearer ${env.OPENROUTER_API_KEY}` },
-    body: { model, prompt, aspect_ratio: sizeToAspect(size) },
+    body: { model, prompt, aspect_ratio: sizeToAspect(size), output_format: 'png' },
   });
 }
 
@@ -298,10 +338,11 @@ async function cmdGenerate(flags) {
   const outDir = typeof flags.output === 'string' ? flags.output : '.';
   const prefix = typeof flags.prefix === 'string' ? flags.prefix : SKILL_NAME;
   mkdirSync(outDir, { recursive: true });
-  const outPath =
-    typeof flags.out === 'string' ? flags.out : nextOutputPath(outDir, prefix, existsSync);
 
-  console.error(`Backend: ${BACKENDS[backend].label} (model ${model}, ${size})`);
+  // Report what the backend was actually asked for. OpenRouter receives a
+  // ratio, so claiming a pixel size there would be false.
+  const sizing = backend === 'openrouter' ? `aspect ${sizeToAspect(size)}` : size;
+  console.error(`Backend: ${BACKENDS[backend].label} (model ${model}, ${sizing})`);
 
   const body = await callBackend(backend, model, prompt, size, process.env);
   const image = extractImage(backend, body);
@@ -320,6 +361,21 @@ async function cmdGenerate(flags) {
     if (!res.ok) throw new UserError(`Could not download the image from ${image.url} (${res.status}).`);
     bytes = Buffer.from(await res.arrayBuffer());
   }
+
+  const ext = imageExtension(bytes, image.mediaType);
+  let outPath;
+  if (typeof flags.out === 'string') {
+    outPath = flags.out;
+    // --out is an exact path, so honour it. Say so when the bytes disagree.
+    const given = /\.([a-z0-9]+)$/i.exec(outPath)?.[1]?.toLowerCase();
+    const normalised = given === 'jpeg' ? 'jpg' : given;
+    if (normalised !== ext) {
+      console.error(`Warning: the image is ${ext.toUpperCase()}, but --out names ${outPath}.`);
+    }
+  } else {
+    outPath = nextOutputPath(outDir, prefix, existsSync, ext);
+  }
+
   writeFileSync(outPath, bytes);
   console.log(outPath);
 }
@@ -384,11 +440,9 @@ async function main(argv) {
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   main(process.argv.slice(2)).catch((error) => {
-    if (error instanceof UserError) {
-      console.error(error.message);
-      process.exit(1);
-    }
-    console.error(error);
-    process.exit(1);
+    console.error(error instanceof UserError ? error.message : error);
+    // Set the code and let Node drain. On Windows, process.exit() while fetch
+    // sockets are still closing aborts libuv and reports 127, not 1.
+    process.exitCode = 1;
   });
 }
