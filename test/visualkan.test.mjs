@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -13,8 +14,17 @@ import {
   imageExtension,
   nextOutputPath,
   targetDir,
+  skillSourceFiles,
+  availableBackends,
+  controlsReport,
   PLATFORMS,
+  SKILLS,
+  STYLES,
   STYLE_SIZES,
+  DRAW_LEVELS,
+  COMPLEXITIES,
+  DEVICES,
+  MODES,
 } from '../visualkan.mjs';
 
 // --- parseArgs -------------------------------------------------------------
@@ -226,4 +236,104 @@ test('a home directory containing a space survives path construction', () => {
   const dir = targetDir('claude', '/c/Users/Davi Muammar/proj');
   assert.ok(dir.includes('Davi Muammar'), 'the space must be preserved, not split');
   assert.ok(dir.endsWith(join('.claude', 'skills', 'visualkan')));
+});
+
+// --- two skills, one install (ADR 0005) ------------------------------------
+
+test('targetDir defaults to the primary skill and accepts the wizard', () => {
+  assert.equal(targetDir('claude', null), join(homedir(), '.claude', 'skills', 'visualkan'));
+  assert.equal(
+    targetDir('claude', null, 'visualkan-wizard'),
+    join(homedir(), '.claude', 'skills', 'visualkan-wizard')
+  );
+});
+
+test('the wizard installs beside the skill it hands off to', () => {
+  // The wizard reads ../visualkan/SKILL.md, so the two directories must share
+  // a parent on every platform.
+  for (const key of Object.keys(PLATFORMS)) {
+    const skill = targetDir(key, null, 'visualkan');
+    const wizard = targetDir(key, null, 'visualkan-wizard');
+    assert.equal(join(wizard, '..'), join(skill, '..'), `${key} must place both skills together`);
+  }
+});
+
+test('targetDir rejects an unknown skill and lists the valid ones', () => {
+  assert.throws(() => targetDir('claude', null, 'visualkan-helper'), /Unknown skill "visualkan-helper"/);
+});
+
+test('every registered skill ships both of its source files', () => {
+  for (const name of Object.keys(SKILLS)) {
+    const { md, meta } = skillSourceFiles(name);
+    assert.ok(md.endsWith(`${name}.md`), `${name} needs skill/${name}.md`);
+    assert.ok(meta.endsWith(`${name}.metadata.json`), `${name} needs skill/${name}.metadata.json`);
+  }
+});
+
+test('every skill metadata file carries the package version', () => {
+  // sync-version writes each one. A skill left behind ships a stale version.
+  const expected = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+  for (const name of Object.keys(SKILLS)) {
+    const { meta } = skillSourceFiles(name);
+    const parsed = JSON.parse(readFileSync(meta, 'utf8'));
+    assert.equal(parsed.version, expected, `${name}.metadata.json is out of step with package.json`);
+  }
+});
+
+test('the wizard description keeps the guard that stops it matching a plain request', () => {
+  // ADR 0005: a description that drifts wide reopens the coin flip between the
+  // two skills.
+  const body = readFileSync(new URL('../skill/visualkan-wizard.md', import.meta.url), 'utf8');
+  assert.match(body, /ONLY when the user names this skill/);
+  assert.match(body, /Do NOT use this for a request to visualize/);
+});
+
+// --- the Control catalog (ADR 0004) ----------------------------------------
+
+test('STYLE_SIZES derives from STYLES rather than repeating it', () => {
+  assert.deepEqual(Object.keys(STYLE_SIZES), Object.keys(STYLES));
+  for (const [name, style] of Object.entries(STYLES)) {
+    assert.equal(STYLE_SIZES[name], style.size);
+    assert.ok(style.blurb.length > 20, `${name} needs a description the wizard can show`);
+  }
+});
+
+test('the section floors match the documented complexity ranges', () => {
+  assert.deepEqual(COMPLEXITIES.simple, { min: 3, max: 4 });
+  assert.deepEqual(COMPLEXITIES.moderate, { min: 5, max: 7 });
+  assert.deepEqual(COMPLEXITIES.detailed, { min: 8, max: 12 });
+});
+
+test('availableBackends reports presence in the detection order', () => {
+  assert.deepEqual(availableBackends({}), []);
+  assert.deepEqual(availableBackends({ OPENROUTER_API_KEY: 'c' }), ['openrouter']);
+  assert.deepEqual(
+    availableBackends({ OPENROUTER_API_KEY: 'c', OPENAI_API_KEY: 'a' }),
+    ['openai', 'openrouter']
+  );
+});
+
+test('controlsReport lists every legal value of every control', () => {
+  const report = controlsReport({});
+  for (const name of Object.keys(STYLES)) assert.ok(report.includes(name), `missing style ${name}`);
+  for (const name of Object.keys(DRAW_LEVELS)) assert.ok(report.includes(name), `missing draw level ${name}`);
+  for (const name of Object.keys(COMPLEXITIES)) assert.ok(report.includes(name), `missing complexity ${name}`);
+  for (const name of Object.keys(DEVICES)) assert.ok(report.includes(name), `missing device ${name}`);
+  for (const name of Object.keys(MODES)) assert.ok(report.includes(name), `missing mode ${name}`);
+});
+
+test('controlsReport states the section floor the clarification step tests', () => {
+  assert.match(controlsReport({}), /moderate\s+5 to 7 Sections/);
+});
+
+test('controlsReport names the backend that auto-detection will choose', () => {
+  assert.match(controlsReport({ GEMINI_API_KEY: 'x' }), /Auto-detect chooses: gemini/);
+  assert.match(controlsReport({}), /Auto-detect finds nothing/);
+});
+
+test('controlsReport reports key presence without printing a key', () => {
+  const report = controlsReport({ OPENAI_API_KEY: 'sk-do-not-print-me' });
+  assert.ok(!report.includes('sk-do-not-print-me'), 'a key value must never reach stdout');
+  assert.match(report, /openai\s+OpenAI gpt-image-2\s+available/);
+  assert.match(report, /gemini\s+Gemini Nano Banana 2\s+set GEMINI_API_KEY/);
 });

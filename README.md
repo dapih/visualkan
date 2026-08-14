@@ -130,6 +130,8 @@ Replace `claude` with your platform:
 
 Use `visualkan install agents` for Cursor, GitHub Copilot, ChatGPT desktop, OpenCode, Windsurf, Roo Code, and Trae.
 
+One command installs two skills. `visualkan` goes to the directory in the table, and `visualkan-wizard` goes to a sibling directory beside it. The wizard needs that layout, so do not move either directory by hand.
+
 ### Project scope
 
 To install into one project instead of your home directory, pass `--project`:
@@ -143,10 +145,13 @@ OpenClaw supports global scope only.
 ### Other commands
 
 ```bash
-visualkan status               # show where the skill is installed
-visualkan uninstall claude     # remove it
+visualkan status               # show where both skills are installed
+visualkan controls             # print every control and its legal values
+visualkan uninstall claude     # remove both skills
 visualkan help                 # full usage
 ```
+
+`visualkan controls` prints the catalog from the code, so it never goes stale. It also reports which backends this machine can reach, without printing a key.
 
 ### Upgrading
 
@@ -162,6 +167,24 @@ The second command overwrites the installed skill with the new version. Run it f
 ```
 /visualkan [--style S] [--draw-level L] [--complexity C] [--size WxH] [--mode M] [--output DIR] [--prefix NAME] <content>
 ```
+
+### The wizard
+
+If you do not want to remember the controls, start the wizard instead:
+
+```
+/visualkan-wizard
+```
+
+It asks for the style, the draw level, the complexity, and the content, one question at a time. Every question shows the legal values and marks the default, and every question offers "accept the remaining defaults". It then states the plan and waits for your approval before it spends anything.
+
+The wizard runs only when you name it. A plain request to visualize something goes to `/visualkan` as before.
+
+### When the request is too thin
+
+`/visualkan` reads the content before it generates. If the content cannot fill the sections that the chosen complexity needs, it asks up to three questions instead of inventing sections. `--complexity simple` needs 3 sections, `moderate` needs 5, and `detailed` needs 8.
+
+After those questions, it states the plan and waits for approval. A request that already carries enough content never stops for either step.
 
 ### Quick examples
 
@@ -279,9 +302,11 @@ Review the src/ directory structure and key modules, then /visualkan --style dia
 --complexity detailed the codebase architecture showing module dependencies and data flow
 ```
 
-### Options
+### Controls
 
-| Option | Values | Default | Description |
+Run `visualkan controls` to print this table from the code. The table below repeats it for readers of this file.
+
+| Control | Values | Default | Description |
 |--------|--------|---------|-------------|
 | `--style` | `whiteboard`, `infographic`, `presentation`, `diagram`, `mindmap`, `mindmap-structured`, `mockup` | `whiteboard` | Visual style |
 | `--device` | `mobile`, `desktop`, `tablet` | `mobile` | Device frame for mockup style |
@@ -363,9 +388,21 @@ Multi-frame mode generates multiple images (3-5), so costs multiply accordingly.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.4.0 | 2026-08-14 | A wizard skill, a clarification step, and `visualkan controls` |
 | 0.3.0 | 2026-08-14 | Fixes found by the first live generation run, and draw-level for infographic |
 | 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### v0.4.0 — Guidance for the user who does not know the controls
+
+Visualkan took nine flags and assumed that the user knew all of them. It also generated an image from a two-word request, which produced sections that nobody wrote. Both are now fixed, and each fix is placed by what starts it.
+
+- **New `visualkan-wizard` skill.** It asks for the style, draw level, complexity, and content, one question at a time, with the legal values shown and the default marked. It never carries a copy of the style templates. It hands the run to the `visualkan` skill, so one copy of those templates stays the point
+- **New clarification step in the `visualkan` skill.** It runs when no content exists, or when the content cannot fill the section floor for the chosen complexity. It asks at most three questions in one message. It never runs because two styles both fit
+- **New confirmation step.** After clarification, or after the wizard, the skill states the style, complexity, core concept, section titles, and cost, then waits. A request that already carries enough content never stops
+- **New `visualkan controls` command.** It prints every control and its legal values from the code, and reports which backends this machine can reach. Draw level and complexity moved into `visualkan.mjs` to join the styles, backends, and devices that were already there
+- **One install command now installs two skills.** `visualkan status` and `visualkan uninstall` cover both, and `visualkan sync-version` writes both metadata files
+- **[ADR 0005](docs/adr/0005-a-helper-flow-is-placed-by-its-trigger.md)** records the rule. A flow that must start mid-run lives inside the skill. A flow that the user starts by name lives in its own skill
 
 ### v0.3.0 — What the first live run found
 

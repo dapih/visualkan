@@ -54,7 +54,7 @@ After extracting flags, join the remaining text as the content to visualize.
 
 ### Step 1: Validate input and choose the route
 
-If no content is provided, ask the user what they want to visualize and stop.
+If no content is provided, go to Step 3 and run Clarification. Do not ask a single loose question here.
 
 There are exactly two routes. Pick one and do not improvise a third.
 
@@ -146,7 +146,54 @@ Perform the following analysis and write it out explicitly:
 5. **Layout Strategy**: How should sections be arranged spatially? (radial from center, left-to-right flow, top-to-bottom hierarchy, grid, timeline)
 6. **Color Coding**: Assign a color theme to each major section for visual grouping
 
-### Step 3: Construct the image generation prompt
+### Step 3: Clarification
+
+Run this step when one of these two conditions is true. Skip it in every other case.
+
+1. **No content exists.** Step 1 sent you here.
+2. **Step 2 cannot reach the section floor.** `simple` needs 3 sections, `moderate` needs 5, and `detailed` needs 8. Run `visualkan controls` to confirm these numbers.
+
+Content that cannot fill the floor forces you to invent sections. An invented section produces an image that looks confident and states nothing true. That is the failure this step prevents.
+
+Do NOT run this step because two styles both fit. `whiteboard` is an acceptable default, and Step 4 lets the user change the style at no cost.
+
+**How to ask:**
+
+- Ask at most three questions.
+- Send them in one message, numbered.
+- Give each question a recommended answer that one word accepts.
+- Never ask what the content already answers.
+
+Ask about the gap you found, not about the flags. Good questions name the missing structure: which parts matter, who reads the result, what the reader must do next.
+
+After the answers arrive, run Step 2 again with the new content. Then go to Step 4.
+
+If the user declines to answer, lower the complexity to the highest level that the content supports. Say which level you chose and why. If the content cannot fill 3 sections, stop and say so.
+
+### Step 4: Confirm the plan
+
+Run this step when one of these two conditions is true. Skip it in every other case.
+
+1. Step 3 ran.
+2. The `visualkan-wizard` skill started this run.
+
+A user who typed exact flags asked for an image, not a conversation. Never interrupt that user here.
+
+State the plan in one block:
+
+```
+Style: [style]        Draw Level: [draw-level]    Complexity: [complexity]
+Mode: [mode]          Backend: [as the CLI reports it]
+Core Concept: [one sentence]
+Sections: [numbered titles, no descriptions]
+Cost: [one image, or N images for multi-frame]
+```
+
+Then stop and wait. Do not construct the image prompt. Do not call the image API. The user reads this block to find out what will appear before any money is spent.
+
+If the user changes a control, apply the change and print the block again. If the user changes the content, run Step 2 again first.
+
+### Step 5: Construct the image generation prompt
 
 Build an extremely detailed prompt following the style-specific templates below. The prompt MUST be comprehensive — typically 400-800 words. Vague prompts produce generic results. Every visual element must be explicitly described.
 
@@ -553,7 +600,7 @@ OVERALL FEEL:
 
 ---
 
-## Step 4: Handle multi-frame mode
+## Step 6: Handle multi-frame mode
 
 If `--mode multi-frame` is specified:
 
@@ -564,7 +611,7 @@ If `--mode multi-frame` is specified:
 5. Generate each frame as a separate image, maintaining consistent style/layout
 6. Each prompt should reference "this is frame X of Y in a series" for consistency
 
-## Step 5: Generate the image(s)
+## Step 7: Generate the image(s)
 
 ### Native route
 
@@ -606,7 +653,7 @@ For `--mode multi-frame`, call the CLI once per frame with that frame's own prom
 
 If the CLI exits with a non-zero status, show its message to the user unchanged. The message is written for them. Do not retry with a different backend, and do not fall back to `curl`.
 
-## Step 6: Generate structured text companion
+## Step 8: Generate structured text companion
 
 After generating the image, also output a structured text summary in this format:
 
@@ -628,7 +675,7 @@ After generating the image, also output a structured text summary in this format
 Generated: [filepath]
 ```
 
-## Step 7: Summary
+## Step 9: Summary
 
 Report to the user:
 - The generated image path(s)
@@ -660,10 +707,11 @@ If any item is missing, add it before generating.
 
 The CLI owns every error about backends, API keys, and models. Its messages are written for the user, so show them unchanged and do not translate or summarise them. Your own error handling covers only these cases:
 
-- If no content is provided, ask the user what to visualize
+- If no content is provided, run Step 3
 - If `visualkan` is not on PATH and no `generate_image` tool exists, tell the user to run `npm install -g visualkan`
 - If the CLI exits non-zero, print its message and stop. Do not retry with another backend.
 - If the content is too complex for the chosen complexity level, suggest upgrading to `detailed`
+- If the content is too thin for the chosen complexity level, run Step 3. Never invent sections to fill the floor.
 
 ## Notes
 

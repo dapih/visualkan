@@ -10,6 +10,10 @@ Visualkan turns any content into a visual explanation: a whiteboard sketch, an i
 The skill itself, and the name of this project. A fork of Eric Blue's `visual-explainer`, renamed because it diverges from upstream.
 _Avoid_: visual-explainer, the command, the slash command
 
+**Wizard**:
+The guided selection of Controls. It is a second skill, `visualkan-wizard`, and the user starts it by name. It collects Controls and Content, then hands the run to Visualkan.
+_Avoid_: menu, guide, setup, interview, assistant
+
 **Platform**:
 An AI coding assistant that can run Visualkan. For example Antigravity, Codex, Claude Code, Gemini CLI, or OpenClaw.
 _Avoid_: host, client, agent, tool, IDE
@@ -42,6 +46,10 @@ _Avoid_: structured output, text summary, companion output
 
 ### The controls
 
+**Control**:
+One of the settings that shapes a Visual Explanation. Style, Draw Level, Complexity, Device, and Mode are Controls. `visualkan controls` prints every Control with its legal values.
+_Avoid_: option, flag, parameter, setting, argument
+
 **Style**:
 The visual language of a Visual Explanation. One of `whiteboard`, `infographic`, `presentation`, `diagram`, `mindmap`, `mindmap-structured`, or `mockup`.
 _Avoid_: template, format, theme, look, visual style
@@ -53,6 +61,10 @@ _Avoid_: fidelity, roughness, polish level, hand-drawn level
 **Complexity**:
 How many Sections a Visual Explanation contains. One of `simple`, `moderate`, or `detailed`.
 _Avoid_: content density, depth, detail level
+
+**Section Floor**:
+The smallest number of Sections that a Complexity accepts. Three for `simple`, five for `moderate`, and eight for `detailed`. Content that cannot fill the Section Floor triggers Clarification.
+_Avoid_: minimum sections, section count, threshold
 
 **Device**:
 The hardware frame drawn around a `mockup` Style Visual Explanation. One of `mobile`, `desktop`, or `tablet`.
@@ -71,6 +83,10 @@ _Avoid_: input, source, material, subject, prompt
 **Content Analysis**:
 The written breakdown of Content into a Core Concept, Sections, relationships, visual metaphors, a layout strategy, and colors. It precedes every Image Prompt.
 _Avoid_: analysis, extraction, breakdown, deep analysis
+
+**Clarification**:
+The step that asks the user for missing Content. It runs when no Content exists, or when a Content Analysis cannot reach the Section Floor. It never runs because two Styles both fit.
+_Avoid_: grilling, brainstorm, interrogation, follow-up questions
 
 **Image Prompt**:
 The detailed text that Visualkan sends to a Backend to produce one Frame. Built from a Content Analysis and a Style template.
