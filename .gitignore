@@ -5,3 +5,6 @@ node_modules/
 
 # Claude Code personal settings, not shared
 .claude/settings.local.json
+
+# Local working notes: handoffs, drafts, ideas not ready to publish
+dev-ideas-and-brief/
