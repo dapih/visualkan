@@ -24,7 +24,7 @@ npm test                # all tests pass
 npm pack --dry-run      # review what will ship
 ```
 
-`npm pack --dry-run` must list only `visualkan.mjs`, `skill/`, `README.md`, `LICENSE`, and `package.json`. If `examples/` appears, the `files` field in `package.json` is broken. That directory is 38 MB.
+`npm pack --dry-run` must list only `visualkan.mjs`, `skill/`, `README.md`, `LICENSE`, and `package.json`. Anything else means the `files` field in `package.json` is broken.
 
 ### 2. Bump the version
 
