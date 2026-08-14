@@ -1,12 +1,12 @@
 # Visualkan
 
-A cross-platform AI skill that converts any content into stunning visual explanations — whiteboard sketches, professional infographics, presentation slides, technical diagrams, mind maps, and UI wireframe mockups — supporting Antigravity, Codex, Claude Code, and OpenClaw, powered by Native Subscriptions (Antigravity/Codex), OpenAI (gpt-image-2), Google Gemini (Nano Banana 2), or OpenRouter (SeeDream, Flux, Krea, RiverFlow, QwenImage, etc.).
+A cross-platform AI skill that converts any content into stunning visual explanations — whiteboard sketches, professional infographics, presentation slides, technical diagrams, mind maps, and UI wireframe mockups — powered by Native Subscriptions (Antigravity/Codex), OpenAI (gpt-image-2), Google Gemini (Nano Banana 2), or OpenRouter (SeeDream, Flux, Krea, RiverFlow, QwenImage, etc.). See [Prerequisites](#prerequisites) for the full list of compatible platforms.
 
 ## About
 
 AI-generated visual explanations have exploded in popularity — tools like NotebookLM and Gemini can turn documents into polished infographics and whiteboard sketches. But these tools are closed ecosystems. You can't customize the output style, integrate them into your dev workflow, or control the prompts that drive the generation.
 
-**Visualkan** brings this capability directly into your AI coding assistant (Antigravity, Codex, Claude Code, or OpenClaw) as a skill. It takes any content — a topic, a document, meeting notes, a codebase — and transforms it into a rich visual explanation.
+**Visualkan** brings this capability directly into your AI coding assistant as a skill. It takes any content — a topic, a document, meeting notes, a codebase — and transforms it into a rich visual explanation.
 
 The core insight is that image generation quality depends almost entirely on prompt quality. Visualkan uses deeply structured, 400-800 word prompts with explicit spatial layout, icon descriptions, color palettes, typography, and connections — producing results that rival or exceed what dedicated visual AI tools generate.
 
@@ -28,57 +28,123 @@ Visualkan restarted its version numbering at 0.1.0. Releases numbered 1.0.0 thro
 ### 1. AI Assistant Platform
 
 Compatible with:
-- **[Google Antigravity](https://antigravity.google)**
-- **[Gemini CLI](https://gemini.google)**
-- **[OpenAI Codex CLI](https://openai.com)**
-- **[Claude Code](https://claude.ai/code)**
-- **[OpenClaw](https://github.com/ericblue/openclaw)**
-- **Open Agent Standard (agentskills.io) platforms**:
-  - ChatGPT desktop (including Codex desktop)
-  - Cursor
-  - OpenCode
-  - GitHub Copilot (in VS Code)
-  - Windsurf
-  - Roo Code
-  - Trae
+
+- Claude Code (CLI and desktop)
+- Antigravity
+- Gemini CLI
+- Codex CLI
+- ChatGPT desktop (including Codex desktop)
+- OpenClaw
+- Cursor
+- OpenCode
+- GitHub Copilot (in VS Code)
+- Windsurf
+- Roo Code
+- Trae
+- Other platforms compatible with Open Agent Standard
 
 ### 2. Image Generation Backend
 
-#### Option A: Native Subscription (Antigravity & Codex) — No API Key Required!
-If you use **Antigravity** or **Codex**, image generation capabilities (via Nano Banana or gpt-image models) are **included in your subscription plan**. No external API key is needed.
+Visualkan needs a way to generate images. Pick one option below.
+
+An API key is a password that identifies you to a service. Visualkan sends your key with each request, and the service checks it before it generates an image.
+
+#### Option A: Native Subscription (Antigravity and Codex)
+
+If you use Antigravity or Codex, image generation is included in your subscription plan. No API key is needed. Skip to [Installation](#installation).
 
 #### Option B: OpenAI API (gpt-image-2)
-1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-2. Create a key and set it:
-```bash
-export OPENAI_API_KEY="sk-..."
-```
+
+1. Go to [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+2. Sign in, or create an account.
+3. Select **Create new secret key**.
+4. Copy the key. It starts with `sk-`.
+5. Store it as `OPENAI_API_KEY`. See [Storing your API key](#storing-your-api-key).
 
 #### Option C: Google Gemini API (Nano Banana 2)
-1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-2. Create an API key and set it:
-```bash
-export GEMINI_API_KEY="AIza..."
+
+1. Go to [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+2. Sign in with a Google account.
+3. Select **Create API key**.
+4. Copy the key. It starts with `AIza`.
+5. Store it as `GEMINI_API_KEY`. See [Storing your API key](#storing-your-api-key).
+
+#### Option D: OpenRouter API (SeeDream, Flux, Krea, RiverFlow, QwenImage, and more)
+
+Choose this option if you do not use Antigravity or Codex, or if you want a choice of image models.
+
+1. Go to [openrouter.ai/keys](https://openrouter.ai/keys).
+2. Sign in, or create an account.
+3. Select **Create Key**.
+4. Copy the key. It starts with `sk-or-v1-`.
+5. Store it as `OPENROUTER_API_KEY`. See [Storing your API key](#storing-your-api-key).
+
+Add `--backend openrouter` to your request to use this option. See [Default backend and model](#default-backend-and-model) for the full list of OpenRouter models.
+
+#### Storing your API key
+
+An environment variable holds a value that programs on your computer can read. This method lets Visualkan find your key. You do not need to type it into every request.
+
+Two methods exist. A temporary variable lasts until you close the terminal window. A permanent variable survives a restart.
+
+**Windows — temporary, for the current PowerShell window only:**
+
+```powershell
+$env:OPENAI_API_KEY = "sk-..."
 ```
 
-#### Option D: OpenRouter API (SeeDream, Flux, Krea, RiverFlow, QwenImage, etc.)
-If you are a non-Antigravity / non-Codex user, or if you want to use alternative image generation models provided by OpenRouter:
-1. Go to [openrouter.ai/keys](https://openrouter.ai/keys)
-2. Create an API key and set it:
-```bash
-export OPENROUTER_API_KEY="sk-or-v1-..."
-```
-Then run with `--backend openrouter` and optional `--model` flag (default: `--model bytedance-seed/seedream-4.5`; supported: `--model bytedance-seed/seedream-4.5`, `--model black-forest-labs/flux-1-schnell`, `--model krea/krea-image`, `--model qwen/qwen-image`, etc.).
+**Windows — permanent:**
 
-#### Persist across sessions
+1. Press the Windows key.
+2. Type `env`.
+3. Select **Edit environment variables for your account**.
+4. Under **User variables**, select **New**.
+5. Enter `OPENAI_API_KEY` as the variable name.
+6. Paste your key as the variable value.
+7. Select **OK** on every open window.
+8. Close and reopen your terminal.
 
-Add your key(s) to your shell profile (`~/.zshrc` or `~/.bashrc`):
+**macOS and Linux — temporary, for the current terminal window only:**
 
 ```bash
 export OPENAI_API_KEY="sk-..."
-export GEMINI_API_KEY="AIza..."
-export OPENROUTER_API_KEY="sk-or-v1-..."
 ```
+
+**macOS and Linux — permanent:**
+
+1. Find your shell's startup file. zsh, the default on current macOS, uses `~/.zshrc`. bash uses `~/.bashrc` or `~/.bash_profile`.
+2. Open the file in a text editor.
+3. Add this line at the end of the file:
+
+   ```bash
+   export OPENAI_API_KEY="sk-..."
+   ```
+
+4. Save the file.
+5. Run `source ~/.zshrc`, using your own file name, or open a new terminal window.
+
+Replace `OPENAI_API_KEY` and the example value with the variable name and key for your chosen provider: `GEMINI_API_KEY` or `OPENROUTER_API_KEY`. To store more than one key, repeat these steps for each variable.
+
+#### Default backend and model
+
+If you do not pass `--backend`, the CLI picks one for you. It checks for a key in this fixed order: `OPENAI_API_KEY`, then `GEMINI_API_KEY`, then `OPENROUTER_API_KEY`. The first key it finds sets the backend for that run.
+
+No environment variable changes this order. Two methods control the choice instead:
+
+- Store only the key for the provider you want.
+- Add `--backend openai`, `--backend gemini`, or `--backend openrouter` to your request. This flag always wins over the automatic order.
+
+OpenAI and Gemini each run one fixed image model. You cannot change it, and `--model` with either backend is an error by design.
+
+OpenRouter accepts a `--model` flag:
+
+```
+/visualkan --backend openrouter --model bytedance-seed/seedream-4.5 How async/await works
+/visualkan --backend openrouter --model black-forest-labs/flux-1-schnell How async/await works
+/visualkan --backend openrouter --model krea/krea-image How async/await works
+```
+
+No environment variable sets the model either. Include `--model` in your request each time you want a model other than the default, `bytedance-seed/seedream-4.5`. Run `visualkan controls` for the full list of supported models.
 
 ### 3. Node.js 24 or later
 
@@ -88,27 +154,38 @@ Visualkan ships as an npm package, and the `visualkan` CLI performs the API call
 node --version    # must be v24 or later
 ```
 
+If this command fails, or reports an older version, install Node.js from [nodejs.org](https://nodejs.org). The installer matches your operating system automatically.
+
 Antigravity and Codex users who rely on the native subscription backend still need Node to install the skill, but the CLI is not involved in generation.
 
 ## Compatibility
 
-This skill supports any Skills-compatible agent or CLI tool that supports markdown skill definitions, including:
+This skill supports any platform that reads markdown skill definitions, including every platform compatible with [Open Agent Standard](https://agentskills.io). See [Prerequisites](#prerequisites) for the full list of compatible platforms.
 
-- **Google Antigravity** (supported — native subscription image generation)
-- **Gemini CLI** (supported — API keys or OpenRouter)
-- **OpenAI Codex CLI** (supported — native subscription image generation)
-- **Claude Code** (supported — API keys or OpenRouter)
-- **OpenClaw** (supported — API keys or OpenRouter)
-- **Open Agent Standard (agentskills.io)** (supported — Cursor, GitHub Copilot, ChatGPT desktop, OpenCode, Windsurf, Roo Code, Trae)
+Antigravity and Codex CLI use native subscription image generation, with no API key needed. Every other platform uses an API key, or OpenRouter. See [Image Generation Backend](#2-image-generation-backend).
 
 ## Installation
 
-Visualkan needs [Node.js](https://nodejs.org) 24 or later. Nothing else.
+Visualkan needs [Node.js](https://nodejs.org) 24 or later, and nothing else.
+
+### Open a terminal
+
+Run every command below inside a terminal window.
+
+- **Windows**: Press the Windows key. Type `powershell`. Select **Windows PowerShell**.
+- **macOS**: Press Command+Space. Type `terminal`. Press Return.
+- **Linux**: Open your terminal application from the applications menu, or press Ctrl+Alt+T.
 
 ### 1. Install the CLI
 
 ```bash
 npm install -g @dapih/visualkan
+```
+
+If this command reports a permission error on macOS or Linux, run it again with `sudo`:
+
+```bash
+sudo npm install -g @dapih/visualkan
 ```
 
 ### 2. Install the skill into your platform
