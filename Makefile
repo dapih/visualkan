@@ -28,6 +28,7 @@ AGENTS_SKILLS_DIR      ?= $(HOME)/.agents/skills
 	codex-install codex-uninstall codex-check \
 	agents-install agents-uninstall agents-check \
 	project-install project-uninstall \
+	gemini-project-install codex-project-install \
 	bump-patch bump-minor bump-major set-version release
 
 .DEFAULT_GOAL := help
