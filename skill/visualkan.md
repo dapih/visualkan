@@ -282,14 +282,15 @@ OVERALL FEEL: Clean, authoritative, and visually balanced. Like a premium educat
 ```
 Create a single, visually striking presentation slide that explains [topic]. This should look like a keynote slide from a world-class conference talk — bold, minimal, and impactful.
 
-CANVAS: Widescreen (16:9) format. [Dark background with light text / Light background with dark text / Gradient background]. [Specify exact colors.]
+CANVAS: Widescreen (16:9) format. [Dark background with light text / Light background with dark text / Gradient background]. [Specify exact colors.] [If sketch: flat matte paper or a plain board surface, no gradients, slight texture. If normal: a clean solid field with one subtle accent shape. If polished: a precise gradient or deep solid with controlled vignetting.]
 
-TITLE: "[Title]" in [large/extra-large] bold [modern sans-serif] text. Positioned [top-left / center-top]. [Color and styling details.]
+TITLE: "[Title]" in [large/extra-large] bold [modern sans-serif] text. Positioned [top-left / center-top]. [Color and styling details.] [If sketch: hand-lettered with a marker, slightly uneven baseline, drawn underline. If normal: clean sans-serif with a simple accent rule. If polished: tight tracking, optical alignment, exact optical sizing.]
 
 VISUAL HIERARCHY: The slide should have ONE dominant visual element that immediately captures attention, supported by [2-4] secondary elements.
 
 PRIMARY VISUAL:
 [Describe the main illustration, diagram, or graphic — e.g., "A large circular diagram in the center showing the 4 stages of the process, with each quadrant in a different color and connected by curved arrows"]
+[If sketch: draw it with visible marker strokes, hand-drawn arcs, and shapes that do not close perfectly. If normal: clean vector shapes with consistent stroke weight. If polished: exact geometry, aligned to an invisible grid, with refined shadow and depth.]
 
 SUPPORTING ELEMENTS:
 [For each supporting element:]
@@ -300,15 +301,23 @@ SUPPORTING ELEMENTS:
 KEY POINTS:
 [2-5 key takeaways displayed as clean bullet points or visual callouts]
 - [Exact text and position for each]
+- [If sketch: hand-drawn bullet dots or ticks, text in marker handwriting. If normal: simple round bullets, clean sans-serif. If polished: custom bullet glyphs or numerals, precise baseline spacing.]
 
 DESIGN DETAILS:
 - [Subtle grid lines, geometric decorations, or accent shapes in background]
 - [Icon style and placement]
 - [Color accent usage]
+- [If sketch: margin doodles, a hand-drawn frame edge, one or two arrows pointing at the primary visual. If normal: restrained geometric accents only. If polished: no decoration beyond deliberate negative space and one accent shape.]
 
 TYPOGRAPHY: [Conference-quality — bold headers, clean body text, consistent sizing. Specify font style.]
+[If sketch]: Hand-lettered throughout. Headers in thick marker strokes, body in a thinner pen. Confident but clearly drawn by hand.
+[If normal]: Clean sans-serif (Helvetica or Inter style). Two weights only. All text horizontal and aligned.
+[If polished]: Precise typographic scale with a clear ratio between levels. Tight tracking on headers, generous leading on body text.
 
 OVERALL FEEL: TED-talk quality. Bold, confident, focused. Every element earns its place. High contrast and strong visual hierarchy. The key message is understood within 3 seconds of looking at it.
+[If sketch]: Like a speaker sketched the slide on a tablet the night before. Energetic and human, still readable from the back row.
+[If normal]: Like a well-built conference deck. Clean, professional, not fussy.
+[If polished]: Like a keynote slide from a product launch. Impeccable alignment, deliberate whitespace, nothing accidental.
 ```
 
 ### MINDMAP Style
@@ -316,7 +325,9 @@ OVERALL FEEL: TED-talk quality. Bold, confident, focused. Every element earns it
 ```
 Create a vibrant, colorful mind map illustration. This should look like a beautifully hand-crafted mind map created by someone who loves visual thinking — organic, radial, bursting with color and personality.
 
-CANVAS: [White / cream / light gray] background, landscape orientation. Clean but with subtle paper texture.
+CANVAS: [White / cream / light gray] background, landscape orientation. Clean but with subtle paper texture. [If sketch: visible paper grain, faint pencil guide marks, one or two smudges. If normal: light texture only. If polished: a pure flat field with no texture.]
+
+DRAW LEVEL: This style stays vibrant and colorful at every draw level. The draw level changes only how the marks are executed, never the palette. Do NOT desaturate at the polished level — a muted, data-oriented mind map is the `mindmap-structured` style, not this one.
 
 CENTER NODE: A large, eye-catching central element in the exact center of the image:
 - Shape: [rounded rectangle / circle / cloud / organic blob] with a bold fill color (e.g., rich coral, deep teal, or vibrant purple)
@@ -329,6 +340,7 @@ MAIN BRANCHES: [4-8 depending on complexity] thick, organic, curved branches rad
 - Curve gracefully outward — NOT straight lines. Use smooth, flowing, slightly wavy curves
 - Taper from thick (near center) to thinner as they extend outward
 - End at a rounded rectangle or pill-shaped node containing the section title
+- [If sketch: drawn with felt-tip markers, visible stroke texture, branches that wobble and vary in width. If normal: clean vector curves with smooth tapering. If polished: precise bezier curves with even taper and a soft drop shadow.]
 
 BRANCH NODES (Level 1): At the end of each main branch:
 - A rounded rectangle or pill shape filled with the SAME color as its branch (but slightly lighter tint)
@@ -352,6 +364,7 @@ DECORATIVE ELEMENTS:
 - Subtle shadow or glow behind the central node
 - [Optional: small doodles, emoji-style icons, or illustrative elements that make it feel alive]
 - Curved connector lines (dotted, in gray) between related branches that aren't directly connected — with small labels explaining the cross-connection
+- [If sketch: many scattered doodles, hand-drawn stars and arrows, deliberate imperfection. If normal: a moderate number of clean icons placed with intent. If polished: fewer icons, each precisely drawn and evenly spaced.]
 
 COLORS: Use a vibrant, saturated palette — each main branch has its own distinct color. Colors should be bold and joyful: [specify 4-8 colors]. The overall impression should be a rainbow of organized knowledge.
 
@@ -361,8 +374,12 @@ TYPOGRAPHY:
 - Level 2: Smaller regular text
 - Level 3: Smallest text, still legible
 - All text should be horizontal and easy to read (not rotated along branches)
+- [If sketch: hand-lettered throughout, cheerful and uneven. If normal: a clean rounded sans-serif. If polished: a refined sans-serif with an exact size ratio between levels.]
 
 OVERALL FEEL: Organic, radiant, visually stunning. Like a beautifully crafted mind map from a skilled visual thinker's notebook. The eye is drawn to the center and naturally follows branches outward. Balanced composition — branches fill the space evenly without crowding. Feels creative, energetic, and intellectually stimulating.
+[If sketch]: Like a page torn from an enthusiast's notebook. Loose, joyful, obviously made by hand.
+[If normal]: Like a mind map built in a good visual tool by someone with taste. Clean execution, full personality.
+[If polished]: Like a printed poster of a mind map. Every curve exact, every colour deliberate, still bright and alive.
 ```
 
 ### MINDMAP-STRUCTURED Style
@@ -370,7 +387,9 @@ OVERALL FEEL: Organic, radiant, visually stunning. Like a beautifully crafted mi
 ```
 Create a clean, professional, data-oriented mind map in the style of XMind or MindMeister. This should look like a structured knowledge map from a business intelligence tool — organized, precise, and information-dense with minimal decorative elements.
 
-CANVAS: Clean white or very light gray (#F8F9FA) background, landscape orientation. No texture — pure and minimal.
+CANVAS: Clean white or very light gray (#F8F9FA) background, landscape orientation. No texture — pure and minimal. [If sketch: a whiteboard or plain paper surface with faint texture. If normal or polished: no texture at all.]
+
+DRAW LEVEL: The data elements and the muted palette are what define this style, and they are present at every draw level. The draw level changes only how the marks are executed. Do NOT drop the badges, counts, or status markers at the sketch level — a colorful mind map without data elements is the `mindmap` style, not this one.
 
 CENTER NODE: A prominent but understated central element in the center:
 - Shape: Rounded rectangle with subtle shadow or thin border
@@ -381,7 +400,7 @@ CENTER NODE: A prominent but understated central element in the center:
 
 MAIN BRANCHES: [4-8 depending on complexity] — these are clean, straight or gently curved lines:
 - Use a MUTED, PROFESSIONAL color palette — not vibrant. Colors like: steel blue (#5B7B9A), sage green (#6B8E6B), warm gray (#8E8E7A), muted coral (#C27B6B), slate purple (#7B6B8E), dusty teal (#5B8E8E)
-- Lines should be clean and consistent width (2-3px) — NOT organic or hand-drawn
+- [If sketch: drawn by hand with a fine marker, consistent intent but visibly hand-ruled, still straight rather than organic. If normal: clean and consistent width (2-3px), NOT organic or hand-drawn. If polished: exact 2px strokes with precise joins.]
 - Lines connect from center node edge to Level 1 nodes with clean right-angle or gentle curve routing
 - Use a structured layout: top branches go up-right and up-left, bottom branches go down-right and down-left — creating a balanced tree structure
 
@@ -411,6 +430,7 @@ DATA ELEMENTS (what makes this style distinct):
   - Count badges: small numbered circles showing "3 items", "5 types", etc.
   - Category labels: small muted pills like "[Core]" "[Advanced]" "[Optional]"
 - These data elements should feel like metadata attached to nodes — compact and informative
+- [If sketch: the badges and markers are hand-drawn — pills sketched by hand, checkmarks and bars drawn with a marker. They stay present and readable. If normal: clean vector pills and bars. If polished: pixel-exact badges with consistent corner radii and precise alignment.]
 
 CROSS-CONNECTIONS:
 - Thin dashed gray lines connecting related nodes across different branches
@@ -432,10 +452,13 @@ TYPOGRAPHY:
 - Level 1: 14pt bold, dark charcoal
 - Level 2: 11-12pt regular, dark gray
 - Level 3: 10pt regular, medium gray
-- NO hand-drawn, script, or decorative fonts anywhere
+- [If sketch: neat hand printing in place of the sans-serif, sized to the same hierarchy. Never script or decorative. If normal or polished: NO hand-drawn, script, or decorative fonts anywhere.]
 - All text horizontal, left-aligned within nodes
 
 OVERALL FEEL: Professional, structured, corporate-ready. Like a screenshot from XMind Pro or MindMeister in "business" theme. Information-dense but well-organized. Could be dropped into a board presentation or strategy document without modification. Clean lines, muted colors, clear hierarchy. The focus is on the DATA and RELATIONSHIPS, not visual flair.
+[If sketch]: Like a planning session captured on a whiteboard by someone rigorous. Hand-drawn, but every badge and count is still there and still legible.
+[If normal]: Like a screenshot from XMind Pro in its business theme.
+[If polished]: Like a vector export from a business intelligence tool, ready to drop into a board pack at full resolution.
 ```
 
 ### DIAGRAM Style
@@ -443,9 +466,11 @@ OVERALL FEEL: Professional, structured, corporate-ready. Like a screenshot from 
 ```
 Create a clear, precise technical diagram explaining [topic]. This should look like a professionally created technical illustration — accurate, well-labeled, and easy to follow.
 
-CANVAS: Clean [white / light gray] background. [Specify dimensions context.]
+CANVAS: Clean [white / light gray] background. [Specify dimensions context.] [If sketch: whiteboard or graph-paper surface with faint grid lines. If normal: flat white. If polished: flat white with a very subtle grid at low opacity.]
 
-TITLE: "[Title]" in [position] using clean, professional [sans-serif] text in [color].
+DRAW LEVEL: The diagram must stay accurate and unambiguous at every draw level. The draw level changes how the marks are executed, never how precise the information is. Labels stay legible and connections stay traceable even at the sketch level.
+
+TITLE: "[Title]" in [position] using clean, professional [sans-serif] text in [color]. [If sketch: hand-lettered in marker, underlined by hand. If normal: clean sans-serif. If polished: precise sans-serif with exact optical alignment.]
 
 DIAGRAM TYPE: [Flowchart / Architecture diagram / Sequence diagram / Mind map / Process flow / Comparison matrix / Hierarchy tree / Network topology]
 
@@ -456,6 +481,7 @@ NODES/ELEMENTS:
 - Label: "[exact text]"
 - Position: [where in the diagram]
 - [Any internal details or sub-elements]
+- [If sketch: shapes drawn by hand with a marker, corners that do not quite meet, slightly uneven fills. If normal: clean vector shapes with uniform 2px strokes. If polished: exact geometry, aligned to a grid, with consistent corner radii and subtle shadow.]
 
 CONNECTIONS:
 [For each connection:]
@@ -464,6 +490,7 @@ CONNECTIONS:
 - Arrow: [one-way / bidirectional / none]
 - Label: "[text on the connection]"
 - Color: [specific color]
+- [If sketch: hand-drawn lines with visible marker texture and arrowheads drawn as two quick strokes. Lines stay traceable from source to target. If normal: clean straight or orthogonal routing. If polished: precise routing with even spacing, rounded corners at bends, and uniform arrowheads.]
 
 LEGEND/KEY: [If applicable, describe a legend box]
 
@@ -474,8 +501,14 @@ GROUPING:
 - [Visual containers/boundaries that group related nodes — dashed rectangles, shaded regions, swim lanes]
 
 TYPOGRAPHY: Clean, technical, highly legible. All labels crisp. Use consistent font sizing — larger for main nodes, smaller for connection labels.
+[If sketch]: Neat hand printing in marker. Every label still crisp and readable. Never script or decorative.
+[If normal]: Clean technical sans-serif at two or three consistent sizes.
+[If polished]: Precise sans-serif with an exact size ratio between levels and consistent baseline alignment.
 
 OVERALL FEEL: Engineering-quality documentation. Precise, unambiguous, and professionally typeset. Should look like it belongs in official technical documentation or an architecture review deck.
+[If sketch]: Like an architecture sketched on a whiteboard during a design discussion. Rough marks, rigorous thinking, every box and arrow still correct.
+[If normal]: Like a diagram from a well-maintained engineering wiki.
+[If polished]: Like a figure from published technical documentation. Exact, typeset, ready to print.
 ```
 
 ### MOCKUP Style
@@ -762,7 +795,8 @@ If any item is missing, add it before generating.
 - The `mockup` style is ideal for rapid wireframing from PRDs, brainstorming UI layouts, or visualizing modernized interfaces for existing code
 - Use `mindmap` when the audience values visual appeal and creativity
 - Use `mindmap-structured` when the audience values precision, data density, and professional presentation
-- The `draw-level` parameter changes the `whiteboard`, `infographic`, and `mockup` templates. The other styles ignore it today.
+- The `draw-level` parameter changes every style template. Its effect is strongest on `whiteboard`, `mockup`, `diagram`, and `presentation`. It is lightest on `infographic`, which is a polished format by definition.
+- `mindmap` stays vibrant at every draw level, and `mindmap-structured` keeps its data elements at every draw level. Each template states this. The two styles differ by data elements, not by polish (see ADR 0002).
 - Multi-frame mode costs more (one API call per frame) — warn the user about cost
 - Estimated cost (OpenAI): ~$0.053 per image at medium quality, 1024x1024. High quality ~$0.211
 - Estimated cost (Gemini): Free tier available; check current pricing at aistudio.google.com

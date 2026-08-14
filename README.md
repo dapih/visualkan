@@ -473,6 +473,7 @@ Multi-frame mode generates multiple images (3-5), so costs multiply accordingly.
 - Adopted one term per concept across the documents. `Section` replaces `concept`, `sub-topic`, and `Central Topic` (see [CONTEXT.md](CONTEXT.md))
 - Corrected the `--draw-level` coverage note, which named `presentation` (which had no branches) and omitted `infographic` and `mockup` (which had them)
 - Removed the dead `generate-images` dependency from `metadata.json`
+- `--draw-level` now applies to every style. `presentation`, `diagram`, `mindmap`, and `mindmap-structured` previously ignored it
 
 ## Upstream Release History
 
