@@ -45,6 +45,6 @@
   "scripts": {
     "test": "node --test",
     "preversion": "npm test",
-    "version": "node visualkan.mjs sync-version && git add skill/metadata.json"
+    "version": "node visualkan.mjs sync-version && git add skill/"
   }
 }

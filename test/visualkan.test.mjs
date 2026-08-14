@@ -270,6 +270,14 @@ test('every registered skill ships both of its source files', () => {
   }
 });
 
+test('the npm version hook stages every file that sync-version writes', () => {
+  // The hook named skill/metadata.json after that file was renamed, so
+  // `npm version minor` died with git exit 128 part way through the bump.
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const staged = pkg.scripts.version.match(/git add (\S+)/)?.[1];
+  assert.equal(staged, 'skill/', 'stage the directory, not one file name that can go stale');
+});
+
 test('every skill metadata file carries the package version', () => {
   // sync-version writes each one. A skill left behind ships a stale version.
   const expected = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
