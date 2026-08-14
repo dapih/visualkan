@@ -40,6 +40,7 @@
     "visualkan.mjs",
     "skill/",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
@@ -49,5 +50,8 @@
     "test": "node --test",
     "preversion": "npm test",
     "version": "node visualkan.mjs sync-version && git add skill/"
+  },
+  "dependencies": {
+    "@dapih/visualkan": "^0.4.1"
   }
 }
