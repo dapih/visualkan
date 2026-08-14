@@ -44,7 +44,7 @@ The argument string is available as `$ARGUMENTS`. Parse it according to these ru
 | `--mode M` | `single` | `single` (one image) or `multi-frame` (series of images building up the concept) |
 | `--from F` | (none) | Input source: `mermaid` (inline Mermaid in content or clipboard), `mermaid-file PATH` (read from a .mmd/.md file) |
 | `--backend B` | auto-detected | Image generation backend: `native` (built-in subscription for Antigravity/Codex via `generate_image`), `openai` (gpt-image-2), `gemini` (Nano Banana 2), or `openrouter` (OpenRouter API key). |
-| `--model M` | default per backend | Model name to use (primarily for `--backend openrouter`, default: `bytedance-seed/seedream-4.5`; supported: `bytedance-seed/seedream-4.5`, `black-forest-labs/flux-1-schnell`, `krea/krea-image`, `qwen/qwen-image`, `riverflow`, etc.). |
+| `--model M` | `bytedance-seed/seedream-4.5` | **`--backend openrouter` only.** Model name to use. Supported: `bytedance-seed/seedream-4.5`, `black-forest-labs/flux-1-schnell`, `krea/krea-image`, `qwen/qwen-image`, `riverflow`, etc. Used with any other backend, this flag is an error (see ADR 0003). |
 
 ### Everything else is the content
 
@@ -80,6 +80,18 @@ After extracting flags, join the remaining text as the content to visualize.
          export GEMINI_API_KEY="AIza..."      # from aistudio.google.com/apikey
          export OPENROUTER_API_KEY="sk-or..." # from openrouter.ai/keys
      ```
+
+**Validate `--model` against the selected backend.**
+
+`--model` applies to `openrouter` only. The `native`, `openai`, and `gemini` backends each run a fixed model, so a model name has no effect there. If the user passes `--model` and the selected backend is not `openrouter`, stop with this message:
+
+```
+--model applies to --backend openrouter only.
+The <backend> backend runs a fixed model, so --model would be ignored.
+Either drop --model, or pass --backend openrouter to choose a model.
+```
+
+Do NOT accept the flag and ignore it. Silently discarding a flag the user typed is worse than refusing it, because the user believes the model changed when it did not.
 
 **Report the selected backend** immediately after detection:
 ```
@@ -777,6 +789,7 @@ If any item is missing, add it before generating.
 
 - If no API key or native subscription tool is available, stop with setup instructions (detailing native subscription for Antigravity & Codex, or setting `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`)
 - If `--backend` is specified but the corresponding API key is missing (e.g. `--backend openrouter` without `OPENROUTER_API_KEY`), stop with instructions for that specific key
+- If `--model` is passed and the selected backend is not `openrouter`, stop and say that `--model` applies to `openrouter` only. Never accept the flag and ignore it.
 - If `jq` is not available (for API backends), stop with install instructions
 - If no content is provided, ask the user what to visualize
 - If the API or tool returns an error, report it and suggest the user try simplifying the content or switching backends

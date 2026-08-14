@@ -399,7 +399,7 @@ Review the src/ directory structure and key modules, then /visualkan --style dia
 | `--mode` | `single`, `multi-frame` | `single` | One image or a progressive series |
 | `--from` | `mermaid`, `mermaid-file PATH` | (none) | Parse Mermaid input (inline or from a file) |
 | `--backend` | `native`, `openai`, `gemini`, `openrouter` | Auto-detected | Image generation backend. Auto-detects native subscription in Antigravity/Codex, or available API keys (`OPENAI_API_KEY`, `GEMINI_API_KEY`, `OPENROUTER_API_KEY`). |
-| `--model` | Model slug / name | Default per backend | Model to use (primarily for OpenRouter: default `bytedance-seed/seedream-4.5`, `black-forest-labs/flux-1-schnell`, `krea/krea-image`, `qwen/qwen-image`, `riverflow`, etc.). |
+| `--model` | Model slug / name | `bytedance-seed/seedream-4.5` | **`--backend openrouter` only.** Model to use: `bytedance-seed/seedream-4.5`, `black-forest-labs/flux-1-schnell`, `krea/krea-image`, `qwen/qwen-image`, `riverflow`, etc. With any other backend this flag is an error, because those backends run a fixed model. |
 | `--output` | Directory path | `./` | Where to save generated images |
 | `--prefix` | String | `visualkan` | Filename prefix |
 
@@ -474,6 +474,7 @@ Multi-frame mode generates multiple images (3-5), so costs multiply accordingly.
 - Corrected the `--draw-level` coverage note, which named `presentation` (which had no branches) and omitted `infographic` and `mockup` (which had them)
 - Removed the dead `generate-images` dependency from `metadata.json`
 - `--draw-level` now applies to every style. `presentation`, `diagram`, `mindmap`, and `mindmap-structured` previously ignored it
+- `--model` is now rejected with any backend other than `openrouter`, instead of being accepted and silently discarded ([ADR 0003](docs/adr/0003-model-flag-is-openrouter-only.md))
 
 ## Upstream Release History
 
