@@ -1,0 +1,34 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    # Path handling differs between the two, and the 0.1.0 install bug was
+    # Windows-only, so both must pass.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # There are no dependencies, so there is nothing to install.
+      - name: Run the tests
+        run: npm test
+
+      - name: Check that the CLI starts
+        run: node visualkan.mjs version
+
+      - name: Check that the published files are present
+        run: npm pack --dry-run
