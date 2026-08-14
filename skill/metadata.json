@@ -26,7 +26,8 @@
   ],
   "dependencies": {
     "runtime": [
-      "jq"
+      "node>=24",
+      "visualkan"
     ],
     "env": [
       "OPENAI_API_KEY",

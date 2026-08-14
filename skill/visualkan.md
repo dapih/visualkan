@@ -52,67 +52,30 @@ After extracting flags, join the remaining text as the content to visualize.
 
 ## Steps
 
-### Step 1: Validate prerequisites and detect backend
+### Step 1: Validate input and choose the route
 
-- If no content is provided, ask the user what they want to visualize and stop
-- Check that `jq` is available (unless using native `generate_image` tool directly)
+If no content is provided, ask the user what they want to visualize and stop.
 
-**Backend detection** (in priority order):
+There are exactly two routes. Pick one and do not improvise a third.
 
-1. If `--backend native` is specified:
-   - Check if `generate_image` tool is available (or running in Antigravity/Codex environment).
-   - If available: use native subscription image generation. No API key required.
-   - If NOT available: stop with a warning asking the user to use another valid backend option (`--backend openai`, `--backend gemini`, or `--backend openrouter`) or set an API key (`OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`).
-2. If `--backend openrouter` is specified, use OpenRouter API. Require `OPENROUTER_API_KEY`.
-3. If `--backend openai` is specified, use OpenAI. Require `OPENAI_API_KEY`.
-4. If `--backend gemini` is specified, use Gemini. Require `GEMINI_API_KEY`.
-5. If `--backend` is NOT specified, auto-detect:
-   - If running in **Antigravity** or **Codex** (or if `generate_image` tool is available in the agent environment): use `native` (subscription plan included — **no API key required**)
-   - Else if `OPENAI_API_KEY` is set, use OpenAI (`openai`, model `gpt-image-2`)
-   - Else if `GEMINI_API_KEY` is set, use Gemini (`gemini`)
-   - Else if `OPENROUTER_API_KEY` is set, use OpenRouter (`openrouter`, default model `bytedance-seed/seedream-4.5` or specified `--model`)
-   - Else if none of the above, stop with setup instructions:
-     ```
-     No image generation backend or API key found.
-     - If you are in Antigravity or Codex: native subscription image generation is active automatically.
-     - Otherwise, set one of the following environment variables:
-         export OPENAI_API_KEY="sk-..."       # from platform.openai.com
-         export GEMINI_API_KEY="AIza..."      # from aistudio.google.com/apikey
-         export OPENROUTER_API_KEY="sk-or..." # from openrouter.ai/keys
-     ```
+**Native route.** If a `generate_image` tool exists in this environment, use it. Antigravity and Codex provide one, image generation is included in the subscription, and no API key, CLI, or shell command is needed.
 
-**Validate `--model` against the selected backend.**
+**CLI route.** Otherwise, run `visualkan generate`. The CLI performs backend detection, API key validation, `--model` checking, size selection, the HTTP request, and writing the file.
 
-`--model` applies to `openrouter` only. The `native`, `openai`, and `gemini` backends each run a fixed model, so a model name has no effect there. If the user passes `--model` and the selected backend is not `openrouter`, stop with this message:
+Do NOT do any of the following yourself:
 
-```
---model applies to --backend openrouter only.
-The <backend> backend runs a fixed model, so --model would be ignored.
-Either drop --model, or pass --backend openrouter to choose a model.
+- Read or test `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`
+- Decide which backend to use
+- Call an image API with `curl`
+- Parse a response with `jq`, or decode base64 by hand
+
+If `visualkan` is not on PATH, stop and tell the user to run this:
+
+```bash
+npm install -g visualkan
 ```
 
-Do NOT accept the flag and ignore it. Silently discarding a flag the user typed is worse than refusing it, because the user believes the model changed when it did not.
-
-**Report the selected backend** immediately after detection:
-```
-Backend: Native Subscription (Antigravity / Codex generate_image — no API key required)
-```
-or
-```
-Backend: OpenRouter (model: bytedance-seed/seedream-4.5, OPENROUTER_API_KEY is set)
-```
-or
-```
-Backend: OpenAI gpt-image-2 (auto-detected — OPENAI_API_KEY is set)
-```
-or
-```
-Backend: Gemini Nano Banana 2 (auto-detected — only GEMINI_API_KEY is set)
-```
-or
-```
-Backend: Gemini Nano Banana 2 (auto-detected — only GEMINI_API_KEY is set)
-```
+The CLI prints the backend and model it selected to stderr before it calls the API. Pass that line through to the user.
 
 ### Step 1b: Detect and parse Mermaid input
 
@@ -602,138 +565,45 @@ If `--mode multi-frame` is specified:
 
 ## Step 5: Generate the image(s)
 
-Determine the appropriate image size based on style (unless overridden):
-- `whiteboard`: `1536x1024` (landscape)
-- `infographic`: `1024x1536` (portrait)
-- `presentation`: `1536x1024` (landscape)
-- `diagram`: `1024x1024` (square)
-- `mindmap`: `1536x1024` (landscape)
-- `mindmap-structured`: `1536x1024` (landscape)
-- `mockup`: `1024x1536` (portrait) for mobile/tablet, `1536x1024` (landscape) for desktop
+### Native route
 
-**Report before generating:**
-```
-Generating with: <Backend Name> (<size>, high quality)
-```
+Invoke the environment's `generate_image` tool:
 
-### If backend is Native Subscription (Antigravity / Codex):
+- **Prompt**: the constructed prompt
+- **ImageName**: `<prefix>-<n>`
+- **AspectRatio**: `3:2` for landscape, `2:3` for portrait, `1:1` for square
 
-For Antigravity and Codex users, image generation is included directly in your ChatGPT or Gemini subscription plan. No API key is required.
+### CLI route
 
-Invoke the agent's built-in `generate_image` tool:
-- **Prompt**: `<the constructed prompt>`
-- **ImageName**: `<prefix>_<n>`
-- **AspectRatio**: Map the requested size to the closest aspect ratio:
-  - `1536x1024` → `3:2` or `16:9`
-  - `1024x1536` → `2:3` or `9:16`
-  - `1024x1024` → `1:1`
+Write the prompt to a file first. Never pass the prompt as a command-line argument. A prompt contains double quotes, apostrophes, and newlines, and a shell will corrupt at least one of them.
 
-The generated image will be automatically rendered and saved to the output path.
-
-### If backend is OpenRouter:
-
-1. Call the OpenRouter Image API:
+1. Write the constructed prompt to a temporary file, for example `.visualkan-prompt.txt`, using the Write tool.
+2. Run the CLI:
 
 ```bash
-curl -s -X POST "https://openrouter.ai/api/v1/images" \
-  -H "Authorization: Bearer $OPENROUTER_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "<model_name>",
-    "prompt": "<the constructed prompt>",
-    "aspect_ratio": "<16:9 | 9:16 | 1:1>"
-  }'
+visualkan generate --prompt-file .visualkan-prompt.txt --style <style> --output <dir> --prefix <prefix>
 ```
 
-*Note: Default model if `--model` is not provided is `bytedance-seed/seedream-4.5`. Supported model choices include SeeDream (`bytedance-seed/seedream-4.5`), Flux (`black-forest-labs/flux-1-schnell`, `black-forest-labs/flux-1-dev`), Krea (`krea/krea-image`), QwenImage (`qwen/qwen-image`), RiverFlow, etc.*
+3. Delete the temporary prompt file.
 
-2. Extract and save the image (handles both base64 JSON payload and image URL):
+The CLI writes the saved image path to stdout, and the backend and model it selected to stderr.
 
-```bash
-RESPONSE=$(curl -s -X POST "https://openrouter.ai/api/v1/images" \
-  -H "Authorization: Bearer $OPENROUTER_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "'"${MODEL:-bytedance-seed/seedream-4.5}"'",
-    "prompt": "<the constructed prompt>",
-    "aspect_ratio": "<16:9 | 9:16 | 1:1>"
-  }')
+Pass through each flag the user supplied:
 
-# Check for base64 image data
-B64_DATA=$(echo "$RESPONSE" | jq -r '.data[0].b64_json // empty')
-if [ -n "$B64_DATA" ]; then
-  echo "$B64_DATA" | base64 --decode > <output_dir>/<prefix>-<n>.png
-else
-  # Fallback to image URL if provided
-  IMG_URL=$(echo "$RESPONSE" | jq -r '.data[0].url // empty')
-  if [ -n "$IMG_URL" ]; then
-    curl -s "$IMG_URL" -o <output_dir>/<prefix>-<n>.png
-  fi
-fi
-```
+| User flag | CLI flag |
+|---|---|
+| `--backend` | `--backend openai`, `gemini`, or `openrouter` |
+| `--model` | `--model NAME` (openrouter only, the CLI rejects it elsewhere) |
+| `--size` | `--size WxH` |
+| `--device` | `--device mobile`, `desktop`, or `tablet` |
+| `--output` | `--output DIR` |
+| `--prefix` | `--prefix NAME` |
 
-### If backend is OpenAI (gpt-image-2):
+Always pass `--style`, because the CLI derives the default image size from it.
 
-1. Call the OpenAI API:
+For `--mode multi-frame`, call the CLI once per frame with that frame's own prompt file. The CLI numbers the output files automatically, so keep `--output` and `--prefix` identical across the frames.
 
-```bash
-curl -s -X POST "https://api.openai.com/v1/images/generations" \
-  -H "Authorization: Bearer $OPENAI_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-image-2",
-    "prompt": "<the constructed prompt>",
-    "size": "<size>",
-    "quality": "high",
-    "output_format": "png"
-  }'
-```
-
-2. Decode and save:
-```bash
-echo '<response>' | jq -r '.data[0].b64_json' | base64 --decode > <output_dir>/<prefix>-<n>.png
-```
-
-### If backend is Gemini (Nano Banana 2):
-
-1. Call the Gemini API:
-
-```bash
-curl -s -X POST "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=$GEMINI_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "contents": [
-      {
-        "parts": [
-          {"text": "<the constructed prompt>"}
-        ]
-      }
-    ],
-    "generationConfig": {
-      "responseModalities": ["TEXT", "IMAGE"]
-    }
-  }'
-```
-
-2. Extract and save the image. The response contains image data in `candidates[0].content.parts`. Find the part where `inlineData` exists:
-```bash
-echo '<response>' | jq -r '.candidates[0].content.parts[] | select(.inlineData) | .inlineData.data' | base64 --decode > <output_dir>/<prefix>-<n>.png
-```
-
-3. Note: Gemini returns the image MIME type in `.inlineData.mimeType` (usually `image/png`). Use the appropriate file extension.
-
-### Size handling differences:
-
-- **Native Subscription (Antigravity/Codex)**: Uses standard aspect ratios (`3:2`, `16:9`, `2:3`, `9:16`, `1:1`).
-- **OpenAI**: Supports exactly `1024x1024`, `1536x1024`, `1024x1536`. Pass the size directly.
-- **Gemini**: Include desired dimensions in the prompt text itself.
-- **OpenRouter**: Uses `aspect_ratio` (`16:9`, `9:16`, `1:1`) or model-specific parameters.
-
-### Quality:
-
-- Always aim for highest quality on both backends.
-- OpenAI: set `"quality": "high"`.
-- Gemini: quality is controlled by the model tier and prompt detail. The detailed prompts this skill generates are already optimized for high quality output.
+If the CLI exits with a non-zero status, show its message to the user unchanged. The message is written for them. Do not retry with a different backend, and do not fall back to `curl`.
 
 ## Step 6: Generate structured text companion
 
@@ -742,7 +612,7 @@ After generating the image, also output a structured text summary in this format
 ```
 ## Visualkan: [Title]
 
-**Style:** [style] | **Backend:** [OpenAI gpt-image-2, Gemini Nano Banana 2, or OpenRouter] | **Draw Level:** [draw-level] | **Complexity:** [complexity]
+**Style:** [style] | **Backend:** [as reported by the CLI, or "native" for `generate_image`] | **Draw Level:** [draw-level] | **Complexity:** [complexity]
 
 ### Sections
 1. **[Section Title]** — [brief description]
@@ -787,19 +657,18 @@ If any item is missing, add it before generating.
 
 ## Error Handling
 
-- If no API key or native subscription tool is available, stop with setup instructions (detailing native subscription for Antigravity & Codex, or setting `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`)
-- If `--backend` is specified but the corresponding API key is missing (e.g. `--backend openrouter` without `OPENROUTER_API_KEY`), stop with instructions for that specific key
-- If `--model` is passed and the selected backend is not `openrouter`, stop and say that `--model` applies to `openrouter` only. Never accept the flag and ignore it.
-- If `jq` is not available (for API backends), stop with install instructions
+The CLI owns every error about backends, API keys, and models. Its messages are written for the user, so show them unchanged and do not translate or summarise them. Your own error handling covers only these cases:
+
 - If no content is provided, ask the user what to visualize
-- If the API or tool returns an error, report it and suggest the user try simplifying the content or switching backends
+- If `visualkan` is not on PATH and no `generate_image` tool exists, tell the user to run `npm install -g visualkan`
+- If the CLI exits non-zero, print its message and stop. Do not retry with another backend.
 - If the content is too complex for the chosen complexity level, suggest upgrading to `detailed`
 
 ## Notes
 
 - The prompt engineering is the primary value of this skill — spend time on analysis and prompt construction
-- The same prompts work across both backends; the style templates are backend-agnostic
-- Always use `quality: "high"` (OpenAI) — these are meant to be premium visuals
+- The same prompts work across every backend; the style templates are backend-agnostic
+- The CLI already requests the highest quality each backend offers. Do not try to set quality yourself.
 - For best results with text-heavy content, prefer `infographic` style
 - For process/flow content, prefer `diagram` style
 - For engaging/fun explanations, prefer `whiteboard` style
