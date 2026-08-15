@@ -60,7 +60,13 @@ There are exactly two routes. Pick one and do not improvise a third.
 
 **Native route.** If a `generate_image` tool exists in this environment, use it. Antigravity and Codex provide one, image generation is included in the subscription, and no API key, CLI, or shell command is needed.
 
-**CLI route.** Otherwise, run `visualkan generate`. The CLI performs backend detection, API key validation, `--model` checking, size selection, the HTTP request, and writing the file.
+**CLI route.** Otherwise, run the Runtime at this exact path, which was written when the skill was installed:
+
+```bash
+node "{{RUNTIME_PATH}}" generate --prompt-file <file> ...
+```
+
+That path needs no PATH lookup and no particular working directory. Do not search for a `visualkan` command. The Runtime performs backend detection, API key validation, `--model` checking, size selection, the HTTP request, and writing the file.
 
 Do NOT do any of the following yourself:
 
@@ -69,13 +75,13 @@ Do NOT do any of the following yourself:
 - Call an image API with `curl`
 - Parse a response with `jq`, or decode base64 by hand
 
-If `visualkan` is not on PATH, stop and tell the user to run this:
+If that file does not exist, the install is stale or incomplete. Stop and tell the user to run this:
 
 ```bash
-npm install -g @dapih/visualkan
+visualkan install <platform>
 ```
 
-The CLI prints the backend and model it selected to stderr before it calls the API. Pass that line through to the user.
+The Runtime prints the backend and model it selected to stderr before it calls the API. Pass that line through to the user.
 
 ### Step 1b: Detect and parse Mermaid input
 
@@ -151,7 +157,7 @@ Perform the following analysis and write it out explicitly:
 Run this step when one of these two conditions is true. Skip it in every other case.
 
 1. **No content exists.** Step 1 sent you here.
-2. **Step 2 cannot reach the section floor.** `simple` needs 3 sections, `moderate` needs 5, and `detailed` needs 8. Run `visualkan controls` to confirm these numbers.
+2. **Step 2 cannot reach the section floor.** `simple` needs 3 sections, `moderate` needs 5, and `detailed` needs 8. Run `node "{{RUNTIME_PATH}}" controls` to confirm these numbers.
 
 Content that cannot fill the floor forces you to invent sections. An invented section produces an image that looks confident and states nothing true. That is the failure this step prevents.
 
@@ -175,7 +181,7 @@ If the user declines to answer, lower the complexity to the highest level that t
 Run this step when one of these two conditions is true. Skip it in every other case.
 
 1. Step 3 ran.
-2. The `visualkan-wizard` skill started this run.
+2. The literal line `VISUALKAN-WIZARD-RUN` appears in this conversation. That is the Handoff Token, and the Wizard prints it when it hands over a run.
 
 A user who typed exact flags asked for an image, not a conversation. Never interrupt that user here.
 
@@ -183,11 +189,13 @@ State the plan in one block:
 
 ```
 Style: [style]        Draw Level: [draw-level]    Complexity: [complexity]
-Mode: [mode]          Backend: [as the CLI reports it]
+Mode: [mode]          Backend: [name, and why it won]
 Core Concept: [one sentence]
 Sections: [numbered titles, no descriptions]
 Cost: [one image, or N images for multi-frame]
 ```
+
+The Backend line must say why. Write `native (generate_image tool detected)` for the native route. For the CLI route, write what the Runtime reported plus the reason, for example `OpenRouter (no generate_image tool here; first key found)`. A user who expected their platform's own image generation must be able to see, in one line, that it was not available.
 
 Then stop and wait. Do not construct the image prompt. Do not call the image API. The user reads this block to find out what will appear before any money is spent.
 
@@ -629,7 +637,7 @@ Write the prompt to a file first. Never pass the prompt as a command-line argume
 2. Run the CLI:
 
 ```bash
-visualkan generate --prompt-file .visualkan-prompt.txt --style <style> --output <dir> --prefix <prefix>
+node "{{RUNTIME_PATH}}" generate --prompt-file .visualkan-prompt.txt --style <style> --output <dir> --prefix <prefix>
 ```
 
 3. Delete the temporary prompt file.
@@ -708,7 +716,7 @@ If any item is missing, add it before generating.
 The CLI owns every error about backends, API keys, and models. Its messages are written for the user, so show them unchanged and do not translate or summarise them. Your own error handling covers only these cases:
 
 - If no content is provided, run Step 3
-- If `visualkan` is not on PATH and no `generate_image` tool exists, tell the user to run `npm install -g @dapih/visualkan`
+- If the Runtime file is missing and no `generate_image` tool exists, tell the user to run `visualkan install <platform>`. Never tell them to reinstall the npm package, because `visualkan install` is that package, so it is already present.
 - If the CLI exits non-zero, print its message and stop. Do not retry with another backend.
 - If the content is too complex for the chosen complexity level, suggest upgrading to `detailed`
 - If the content is too thin for the chosen complexity level, run Step 3. Never invent sections to fill the floor.

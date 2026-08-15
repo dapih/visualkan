@@ -1,14 +1,24 @@
 #!/usr/bin/env node
-// Visualkan CLI: installs the skill, and performs image generation for the
-// API backends. Zero runtime dependencies — Node only.
+// Visualkan Installer: installs the skills, and forwards the two Runtime
+// commands. Zero runtime dependencies — Node only.
+//
+// The Installer creates skill folders, so it cannot live inside one. The
+// Runtime must live inside one, so an agent can reach it without a PATH
+// lookup. That lifecycle seam is why the two are separate files. See ADR 0006.
 
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, copyFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { UserError, parseArgs, controlsReport, cmdGenerate } from './scripts/visualkan-run.mjs';
+
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PRIMARY_SKILL = 'visualkan';
+
+// The Runtime file, by its name in this package and its name once installed.
+const RUNTIME_FILE = 'visualkan-run.mjs';
+const RUNTIME_DIR = 'scripts';
 
 // --- Skill registry --------------------------------------------------------
 // Each skill ships as skill/<name>.md plus skill/<name>.metadata.json, and
@@ -55,277 +65,14 @@ export const PLATFORMS = {
   },
 };
 
-// --- Backend registry ------------------------------------------------------
-// `native` is deliberately absent. That backend runs inside the host agent via
-// its own generate_image tool, so the CLI is never involved. See ADR 0004.
-export const BACKENDS = {
-  openai: { label: 'OpenAI gpt-image-2', env: 'OPENAI_API_KEY', model: 'gpt-image-2' },
-  gemini: { label: 'Gemini Nano Banana 2', env: 'GEMINI_API_KEY', model: 'gemini-2.0-flash-preview-image-generation' },
-  openrouter: { label: 'OpenRouter', env: 'OPENROUTER_API_KEY', model: 'bytedance-seed/seedream-4.5' },
-};
-
-// Auto-detection order, matching the documented priority.
-const DETECT_ORDER = ['openai', 'gemini', 'openrouter'];
-
-// --- Control registry ------------------------------------------------------
-// The legal values for every Control, printed by `visualkan controls`. One list
-// serves the CLI, the skill, and the Wizard, so a menu cannot drift from the
-// code. A list of legal values is policy, which ADR 0004 gives to the CLI.
-
-export const STYLES = {
-  whiteboard: { size: '1536x1024', blurb: 'Hand-drawn teaching board. Markers, doodles, arrows, one color per Section.' },
-  infographic: { size: '1024x1536', blurb: 'Numbered editorial layout. Portrait, icon per Section, best for text-heavy Content.' },
-  presentation: { size: '1536x1024', blurb: 'One keynote slide. A single dominant visual and 2 to 5 takeaways.' },
-  diagram: { size: '1024x1024', blurb: 'Technical figure. Boxes, arrows, exact labels, engineering documentation.' },
-  mindmap: { size: '1536x1024', blurb: 'Radial and colorful. Organic branches from a center, vibrant at every Draw Level.' },
-  'mindmap-structured': { size: '1536x1024', blurb: 'XMind style. Muted palette, badges and counts, ready for a board pack.' },
-  mockup: { size: '1024x1536', blurb: 'UI wireframe inside a device frame. Pair it with --device.' },
-};
-
-// resolveSize and the test suite read the sizes alone. Derived, never a second copy.
-export const STYLE_SIZES = Object.fromEntries(
-  Object.entries(STYLES).map(([name, style]) => [name, style.size])
-);
-
-export const DRAW_LEVELS = {
-  sketch: 'Rough and hand-drawn. Playful, visibly made by a person.',
-  normal: 'Balanced. Clean execution that still reads as drawn.',
-  polished: 'Precise and professional. Exact geometry and typesetting.',
-};
-
-// The Section counts are the Clarification trigger. Content that cannot fill
-// `min` Sections forces the agent to invent them. See ADR 0005.
-export const COMPLEXITIES = {
-  simple: { min: 3, max: 4 },
-  moderate: { min: 5, max: 7 },
-  detailed: { min: 8, max: 12 },
-};
-
-export const DEVICES = {
-  mobile: 'Phone frame, portrait.',
-  desktop: 'Browser window, landscape.',
-  tablet: 'Tablet frame, portrait.',
-};
-
-export const MODES = {
-  single: 'One Frame. One call to the image API.',
-  'multi-frame': 'Three to five Frames that build up. One call for each, so the cost multiplies.',
-};
-
-class UserError extends Error {}
-
-// --- Pure helpers (covered by the test suite) ------------------------------
-
-export function parseArgs(argv) {
-  const flags = {};
-  const positional = [];
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg.startsWith('--')) {
-      const key = arg.slice(2);
-      const next = argv[i + 1];
-      if (next === undefined || next.startsWith('--')) {
-        flags[key] = true;
-      } else {
-        flags[key] = next;
-        i++;
-      }
-    } else {
-      positional.push(arg);
-    }
-  }
-  return { flags, positional };
-}
-
-export function detectBackend(requested, env) {
-  if (requested === 'native') {
-    throw new UserError(
-      'The native backend does not use this CLI.\n' +
-      'Antigravity and Codex generate images with their own generate_image tool.\n' +
-      'Use --backend openai, gemini, or openrouter here.'
-    );
-  }
-  if (requested) {
-    const backend = BACKENDS[requested];
-    if (!backend) {
-      throw new UserError(`Unknown backend "${requested}". Choose openai, gemini, or openrouter.`);
-    }
-    if (!env[backend.env]) {
-      throw new UserError(`--backend ${requested} requires ${backend.env}, which is not set.`);
-    }
-    return requested;
-  }
-  for (const name of DETECT_ORDER) {
-    if (env[BACKENDS[name].env]) return name;
-  }
-  throw new UserError(
-    'No image generation backend found. Set one of:\n' +
-    '  OPENAI_API_KEY       # from platform.openai.com\n' +
-    '  GEMINI_API_KEY       # from aistudio.google.com/apikey\n' +
-    '  OPENROUTER_API_KEY   # from openrouter.ai/keys\n' +
-    'In Antigravity or Codex, use the native generate_image tool instead.'
-  );
-}
-
-// ADR 0003: --model applies to openrouter only. Reject it elsewhere rather
-// than accepting it and silently generating with a different model.
-export function validateModel(backend, model) {
-  if (model && backend !== 'openrouter') {
-    throw new UserError(
-      '--model applies to --backend openrouter only.\n' +
-      `The ${backend} backend runs a fixed model, so --model would be ignored.\n` +
-      'Either drop --model, or pass --backend openrouter to choose a model.'
-    );
-  }
-  return model || (backend === 'openrouter' ? BACKENDS.openrouter.model : BACKENDS[backend].model);
-}
-
-// Reports which Backends this environment can reach, without throwing and
-// without reading a key value. detectBackend throws when none is present, so
-// the catalog cannot reuse it. ADR 0004 keeps key handling inside the CLI.
-export function availableBackends(env) {
-  return DETECT_ORDER.filter((name) => Boolean(env[BACKENDS[name].env]));
-}
-
-// Builds the Control catalog that `visualkan controls` prints. The Wizard reads
-// this output instead of carrying its own copy of the value lists.
-export function controlsReport(env) {
-  const lines = [];
-  const pad = (text, width) => String(text).padEnd(width);
-
-  lines.push('Visualkan Controls', '');
-
-  lines.push('--style          Default: whiteboard');
-  for (const [name, style] of Object.entries(STYLES)) {
-    lines.push(`  ${pad(name, 20)}${pad(style.size, 11)}${style.blurb}`);
-  }
-  lines.push('');
-
-  lines.push('--draw-level     Default: normal');
-  for (const [name, blurb] of Object.entries(DRAW_LEVELS)) {
-    lines.push(`  ${pad(name, 20)}${blurb}`);
-  }
-  lines.push('');
-
-  lines.push('--complexity     Default: moderate');
-  for (const [name, range] of Object.entries(COMPLEXITIES)) {
-    lines.push(`  ${pad(name, 20)}${range.min} to ${range.max} Sections`);
-  }
-  lines.push('');
-
-  lines.push('--device         Default: mobile. Applies to --style mockup only.');
-  for (const [name, blurb] of Object.entries(DEVICES)) {
-    lines.push(`  ${pad(name, 20)}${blurb}`);
-  }
-  lines.push('');
-
-  lines.push('--mode           Default: single');
-  for (const [name, blurb] of Object.entries(MODES)) {
-    lines.push(`  ${pad(name, 20)}${blurb}`);
-  }
-  lines.push('');
-
-  const available = availableBackends(env);
-  lines.push('--backend        Default: the first available in this list');
-  for (const name of DETECT_ORDER) {
-    const state = env[BACKENDS[name].env] ? 'available' : `set ${BACKENDS[name].env}`;
-    lines.push(`  ${pad(name, 20)}${pad(BACKENDS[name].label, 24)}${state}`);
-  }
-  lines.push(`  ${pad('native', 20)}${pad('Antigravity and Codex', 24)}runs in the platform, never this CLI`);
-  lines.push(
-    available.length
-      ? `  Auto-detect chooses: ${available[0]}`
-      : '  Auto-detect finds nothing. Set a key, or use the native generate_image tool.'
-  );
-  lines.push('');
-
-  lines.push('--model          Applies to --backend openrouter only. See ADR 0003.');
-  lines.push(`  ${pad('default', 20)}${BACKENDS.openrouter.model}`);
-  lines.push('');
-
-  lines.push('--size, --output, --prefix, --from   See `visualkan help`.');
-
-  return lines.join('\n');
-}
-
-export function resolveSize({ size, style, device }) {
-  if (size) {
-    if (!/^\d+x\d+$/.test(size)) throw new UserError(`--size must look like 1536x1024, got "${size}".`);
-    return size;
-  }
-  if (style === 'mockup' && device === 'desktop') return '1536x1024';
-  return STYLE_SIZES[style] ?? '1536x1024';
-}
-
-// OpenRouter takes a ratio, not pixels. Models set their own pixel floors —
-// seedream-4.5 rejects anything under 3.7 megapixels — so sending explicit
-// pixels breaks per model, while a ratio works with all of them.
-export function sizeToAspect(size) {
-  const [w, h] = size.split('x').map(Number);
-  if (w === h) return '1:1';
-  return w > h ? '3:2' : '2:3';
-}
-
-export function extractImage(backend, body) {
-  if (backend === 'gemini') {
-    const parts = body?.candidates?.[0]?.content?.parts ?? [];
-    const part = parts.find((p) => p.inlineData?.data);
-    if (!part) return null;
-    return { b64: part.inlineData.data, mediaType: part.inlineData.mimeType ?? null };
-  }
-  const first = body?.data?.[0];
-  if (!first) return null;
-  const mediaType = first.media_type ?? null;
-  if (first.b64_json) return { b64: first.b64_json, mediaType };
-  if (first.url) return { url: first.url, mediaType };
-  return null;
-}
-
-// --- Output format ---------------------------------------------------------
-// The file name must state the truth about the bytes. Every backend is asked
-// for PNG, but a provider can answer with something else, so the extension is
-// decided after the bytes arrive, not before.
-
-const MEDIA_TYPE_EXTENSIONS = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-  'image/svg+xml': 'svg',
-};
-
-const MAGIC_NUMBERS = [
-  { ext: 'png', magic: [0x89, 0x50, 0x4e, 0x47] },
-  { ext: 'jpg', magic: [0xff, 0xd8, 0xff] },
-  { ext: 'gif', magic: [0x47, 0x49, 0x46, 0x38] },
-];
-
-function matchesMagic(bytes, magic, offset = 0) {
-  return magic.every((byte, i) => bytes[offset + i] === byte);
-}
-
-export function imageExtension(bytes, mediaType) {
-  if (bytes?.length) {
-    for (const { ext, magic } of MAGIC_NUMBERS) {
-      if (matchesMagic(bytes, magic)) return ext;
-    }
-    // WebP is a RIFF container. The format tag sits at offset 8.
-    if (matchesMagic(bytes, [0x52, 0x49, 0x46, 0x46]) && matchesMagic(bytes, [0x57, 0x45, 0x42, 0x50], 8)) {
-      return 'webp';
-    }
-  }
-  return MEDIA_TYPE_EXTENSIONS[mediaType] ?? 'png';
-}
-
-export function nextOutputPath(dir, prefix, exists, ext = 'png') {
-  for (let n = 1; n < 1000; n++) {
-    const candidate = join(dir, `${prefix}-${n}.${ext}`);
-    if (!exists(candidate)) return candidate;
-  }
-  throw new UserError(`Could not find a free filename for "${prefix}-N.${ext}" in ${dir}.`);
-}
-
 // --- Install ---------------------------------------------------------------
+
+// Forward slashes work in bash, cmd.exe, and PowerShell alike, including paths
+// that contain a space. A backslash does not survive every one of them, so a
+// written path never carries one. Verified by running, not by reading.
+export function toPosix(path) {
+  return path.replaceAll('\\', '/');
+}
 
 export function skillSourceFiles(skillName) {
   const md = join(HERE, 'skill', `${skillName}.md`);
@@ -355,6 +102,59 @@ export function targetDir(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
   return join(homedir(), ...platform.global, skillName);
 }
 
+// The path written into an installed skill body, decided once at install time.
+//
+// Global scope gets an absolute path, because there is no project root to be
+// relative to, and because cmd.exe does not expand `~`. Project scope gets a
+// path relative to the project root, so a committed skill folder still works
+// for a teammate whose home directory differs. One literal per install, chosen
+// from the --project flag. See ADR 0006.
+export function installedPath(platformKey, projectRoot, skillName, ...parts) {
+  const platform = PLATFORMS[platformKey];
+  if (!platform) {
+    throw new UserError(
+      `Unknown platform "${platformKey}". Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`
+    );
+  }
+  if (!SKILLS[skillName]) {
+    throw new UserError(`Unknown skill "${skillName}". Choose one of: ${Object.keys(SKILLS).join(', ')}.`);
+  }
+  if (projectRoot) {
+    if (!platform.project) {
+      throw new UserError(`${platform.label} supports global scope only, so --project does not apply.`);
+    }
+    return toPosix(join(...platform.project, skillName, ...parts));
+  }
+  return toPosix(join(homedir(), ...platform.global, skillName, ...parts));
+}
+
+export function runtimePath(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
+  return installedPath(platformKey, projectRoot, skillName, RUNTIME_DIR, RUNTIME_FILE);
+}
+
+export function skillDocPath(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
+  return installedPath(platformKey, projectRoot, skillName, 'SKILL.md');
+}
+
+// Every placeholder a skill body may carry, and what install writes for it.
+// A placeholder with no rule here is a bug the test suite catches, because a
+// leftover {{...}} reaches the agent as literal text.
+export function substitutions(platformKey, projectRoot) {
+  return {
+    RUNTIME_PATH: runtimePath(platformKey, projectRoot, PRIMARY_SKILL),
+    VISUALKAN_SKILL_PATH: skillDocPath(platformKey, projectRoot, PRIMARY_SKILL),
+  };
+}
+
+export function applySubstitutions(body, values) {
+  return body.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key) => {
+    if (!(key in values)) {
+      throw new UserError(`Skill body uses {{${key}}}, which install has no value for.`);
+    }
+    return values[key];
+  });
+}
+
 // Both skills install together. An optional install would mean that the user
 // has to know that the Wizard exists, which is the problem the Wizard solves.
 function cmdInstall(flags, positional) {
@@ -363,14 +163,24 @@ function cmdInstall(flags, positional) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
   const projectRoot = typeof flags.project === 'string' ? flags.project : null;
+  const values = substitutions(platformKey, projectRoot);
+  const runtimeSource = join(HERE, RUNTIME_DIR, RUNTIME_FILE);
+  if (!existsSync(runtimeSource)) {
+    throw new UserError(`The Runtime is missing from the package at ${runtimeSource}.`);
+  }
+
   for (const skillName of Object.keys(SKILLS)) {
     const { md, meta } = skillSourceFiles(skillName);
     const dir = targetDir(platformKey, projectRoot, skillName);
-    mkdirSync(dir, { recursive: true });
-    copyFileSync(md, join(dir, 'SKILL.md'));
+    mkdirSync(join(dir, RUNTIME_DIR), { recursive: true });
+
+    // The skill body is templated, not copied. It carries the resolved path.
+    writeFileSync(join(dir, 'SKILL.md'), applySubstitutions(readFileSync(md, 'utf8'), values));
     copyFileSync(meta, join(dir, 'metadata.json'));
+    copyFileSync(runtimeSource, join(dir, RUNTIME_DIR, RUNTIME_FILE));
     console.log(`Installed ${skillName} v${version()} to ${join(dir, 'SKILL.md')}`);
   }
+  console.log(`Runtime path written into both skills: ${values.RUNTIME_PATH}`);
 }
 
 function cmdUninstall(flags, positional) {
@@ -390,120 +200,44 @@ function cmdUninstall(flags, positional) {
   }
 }
 
+// Reads the version an installed skill folder was written with. That number
+// also dates the Runtime beside it, because install writes both together.
+export function installedVersion(dir, read = readFileSync, exists = existsSync) {
+  const meta = join(dir, 'metadata.json');
+  if (!exists(meta)) return null;
+  try {
+    return JSON.parse(read(meta, 'utf8')).version ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function cmdStatus() {
-  console.log(`${PRIMARY_SKILL} v${version()}`);
+  const current = version();
+  console.log(`${PRIMARY_SKILL} v${current}`);
+  let skew = false;
   for (const key of Object.keys(PLATFORMS)) {
     for (const skillName of Object.keys(SKILLS)) {
       const dir = targetDir(key, null, skillName);
-      const mark = existsSync(join(dir, 'SKILL.md')) ? 'installed' : '-';
-      console.log(`  ${key.padEnd(12)} ${skillName.padEnd(17)} ${mark.padEnd(10)} ${dir}`);
+      const installed = existsSync(join(dir, 'SKILL.md')) ? installedVersion(dir) : null;
+      const runtime = existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE));
+      let mark = '-';
+      if (installed) {
+        mark = installed === current ? `v${installed}` : `v${installed} STALE`;
+        if (installed !== current) skew = true;
+        if (!runtime) {
+          mark += ' no-runtime';
+          skew = true;
+        }
+      }
+      console.log(`  ${key.padEnd(12)} ${skillName.padEnd(17)} ${mark.padEnd(16)} ${dir}`);
     }
   }
-}
-
-// --- Generate --------------------------------------------------------------
-
-async function callBackend(backend, model, prompt, size, env) {
-  if (backend === 'openai') {
-    return postJson('https://api.openai.com/v1/images/generations', {
-      headers: { Authorization: `Bearer ${env.OPENAI_API_KEY}` },
-      body: { model, prompt, size, quality: 'high', output_format: 'png' },
-    });
+  if (skew) {
+    console.log('');
+    console.log(`A skill above was installed by an older version, or is missing its Runtime.`);
+    console.log(`Re-run: visualkan install <platform>`);
   }
-  if (backend === 'gemini') {
-    const url =
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
-      `?key=${encodeURIComponent(env.GEMINI_API_KEY)}`;
-    return postJson(url, {
-      body: {
-        contents: [{ parts: [{ text: `${prompt}\n\nRender at approximately ${size} pixels.` }] }],
-        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
-      },
-    });
-  }
-  return postJson('https://openrouter.ai/api/v1/images', {
-    headers: { Authorization: `Bearer ${env.OPENROUTER_API_KEY}` },
-    body: { model, prompt, aspect_ratio: sizeToAspect(size), output_format: 'png' },
-  });
-}
-
-async function postJson(url, { headers = {}, body }) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: JSON.stringify(body),
-  });
-  const text = await response.text();
-  if (!response.ok) {
-    throw new UserError(`${new URL(url).host} returned ${response.status}:\n${text.slice(0, 600)}`);
-  }
-  try {
-    return JSON.parse(text);
-  } catch {
-    throw new UserError(`${new URL(url).host} returned a response that is not JSON:\n${text.slice(0, 300)}`);
-  }
-}
-
-async function cmdGenerate(flags) {
-  const promptFile = flags['prompt-file'];
-  if (typeof promptFile !== 'string') {
-    throw new UserError('--prompt-file PATH is required. Write the prompt to a file, do not pass it as an argument.');
-  }
-  if (!existsSync(promptFile)) throw new UserError(`Prompt file not found: ${promptFile}`);
-  const prompt = readFileSync(promptFile, 'utf8').trim();
-  if (!prompt) throw new UserError(`Prompt file is empty: ${promptFile}`);
-
-  const backend = detectBackend(typeof flags.backend === 'string' ? flags.backend : null, process.env);
-  const model = validateModel(backend, typeof flags.model === 'string' ? flags.model : null);
-  const size = resolveSize({
-    size: typeof flags.size === 'string' ? flags.size : null,
-    style: typeof flags.style === 'string' ? flags.style : 'whiteboard',
-    device: typeof flags.device === 'string' ? flags.device : 'mobile',
-  });
-
-  const outDir = typeof flags.output === 'string' ? flags.output : '.';
-  const prefix = typeof flags.prefix === 'string' ? flags.prefix : PRIMARY_SKILL;
-  mkdirSync(outDir, { recursive: true });
-
-  // Report what the backend was actually asked for. OpenRouter receives a
-  // ratio, so claiming a pixel size there would be false.
-  const sizing = backend === 'openrouter' ? `aspect ${sizeToAspect(size)}` : size;
-  console.error(`Backend: ${BACKENDS[backend].label} (model ${model}, ${sizing})`);
-
-  const body = await callBackend(backend, model, prompt, size, process.env);
-  const image = extractImage(backend, body);
-  if (!image) {
-    throw new UserError(
-      `${BACKENDS[backend].label} returned no image data.\n` +
-      `Response keys: ${Object.keys(body ?? {}).join(', ') || '(none)'}`
-    );
-  }
-
-  let bytes;
-  if (image.b64) {
-    bytes = Buffer.from(image.b64, 'base64');
-  } else {
-    const res = await fetch(image.url);
-    if (!res.ok) throw new UserError(`Could not download the image from ${image.url} (${res.status}).`);
-    bytes = Buffer.from(await res.arrayBuffer());
-  }
-
-  const ext = imageExtension(bytes, image.mediaType);
-  let outPath;
-  if (typeof flags.out === 'string') {
-    outPath = flags.out;
-    // --out is an exact path, so honour it. Say so when the bytes disagree.
-    const given = /\.([a-z0-9]+)$/i.exec(outPath)?.[1]?.toLowerCase();
-    const normalised = given === 'jpeg' ? 'jpg' : given;
-    if (normalised !== ext) {
-      console.error(`Warning: the image is ${ext.toUpperCase()}, but --out names ${outPath}.`);
-    }
-  } else {
-    outPath = nextOutputPath(outDir, prefix, existsSync, ext);
-  }
-
-  writeFileSync(outPath, bytes);
-  console.log(outPath);
 }
 
 // --- Version ---------------------------------------------------------------
@@ -550,6 +284,9 @@ generate options:
   --output DIR         Output directory (default: .)
   --prefix NAME        Filename prefix (default: visualkan)
   --out PATH           Exact output path, overrides --output and --prefix
+
+install writes the Runtime into <skill>/scripts/, and writes its resolved path
+into each skill body, so an agent never needs this command on PATH.
 `;
 
 async function main(argv) {
@@ -561,6 +298,7 @@ async function main(argv) {
     case 'install': return cmdInstall(flags, rest);
     case 'uninstall': return cmdUninstall(flags, rest);
     case 'status': return cmdStatus();
+    // Forwarded to the Runtime, which is the one place these live.
     case 'controls': return void console.log(controlsReport(process.env));
     case 'generate': return cmdGenerate(flags);
     case 'sync-version': return cmdSyncVersion();

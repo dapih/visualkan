@@ -14,6 +14,22 @@ _Avoid_: visual-explainer, the command, the slash command
 The guided selection of Controls. It is a second skill, `visualkan-wizard`, and the user starts it by name. It collects Controls and Content, then hands the run to Visualkan.
 _Avoid_: menu, guide, setup, interview, assistant
 
+**CLI**:
+The npm package, taken as a whole. It has two parts, the Installer and the Runtime.
+_Avoid_: the tool, the binary, the command line
+
+**Installer**:
+The npm bin, `visualkan.mjs`. It owns `install`, `uninstall`, `status`, and `sync-version`. It creates skill directories, so it never lives inside one.
+_Avoid_: the CLI, the binary, the command, setup
+
+**Runtime**:
+`scripts/visualkan-run.mjs`. It owns every Control and image generation. Install copies it into `<skill>/scripts/`, and the Installer imports it so that one file serves both. See ADR 0006.
+_Avoid_: the CLI, engine, executable, helper, the script
+
+**Handoff Token**:
+The literal line `VISUALKAN-WIZARD-RUN`. The Wizard prints it when it hands a run to Visualkan, and the confirmation step requires it. A token rather than a sentence, because the sentence did not survive.
+_Avoid_: marker, flag, signal, sentinel
+
 **Platform**:
 An AI coding assistant that can run Visualkan. For example Antigravity, Codex, Claude Code, Gemini CLI, or OpenClaw.
 _Avoid_: host, client, agent, tool, IDE

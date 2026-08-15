@@ -4,6 +4,21 @@ import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+// The Installer owns install, uninstall, status, and sync-version.
+import {
+  targetDir,
+  skillSourceFiles,
+  runtimePath,
+  skillDocPath,
+  substitutions,
+  applySubstitutions,
+  installedVersion,
+  toPosix,
+  PLATFORMS,
+  SKILLS,
+} from '../visualkan.mjs';
+
+// The Runtime owns the Controls and image generation. See ADR 0006.
 import {
   parseArgs,
   detectBackend,
@@ -13,19 +28,15 @@ import {
   extractImage,
   imageExtension,
   nextOutputPath,
-  targetDir,
-  skillSourceFiles,
   availableBackends,
   controlsReport,
-  PLATFORMS,
-  SKILLS,
   STYLES,
   STYLE_SIZES,
   DRAW_LEVELS,
   COMPLEXITIES,
   DEVICES,
   MODES,
-} from '../visualkan.mjs';
+} from '../scripts/visualkan-run.mjs';
 
 // --- parseArgs -------------------------------------------------------------
 
@@ -344,4 +355,102 @@ test('controlsReport reports key presence without printing a key', () => {
   assert.ok(!report.includes('sk-do-not-print-me'), 'a key value must never reach stdout');
   assert.match(report, /openai\s+OpenAI gpt-image-2\s+available/);
   assert.match(report, /gemini\s+Gemini Nano Banana 2\s+set GEMINI_API_KEY/);
+});
+
+test('controlsReport describes native by capability, not by product name', () => {
+  // Naming two platforms taught the agent to stop looking for a tool it might
+  // actually have. Only the agent can detect one, so the catalog must not guess.
+  const report = controlsReport({});
+  assert.match(report, /generate_image tool/);
+  assert.ok(!/native\s+Antigravity and Codex/.test(report), 'native must not be a product list');
+});
+
+// --- installed paths (ADR 0006) --------------------------------------------
+
+test('runtimePath is absolute for global scope and needs no PATH lookup', () => {
+  const p = runtimePath('claude', null, 'visualkan');
+  assert.ok(p.endsWith('/.claude/skills/visualkan/scripts/visualkan-run.mjs'), p);
+  assert.ok(/^([A-Za-z]:)?\//.test(p), `global scope must be absolute, got ${p}`);
+});
+
+test('runtimePath is project-relative for project scope so a commit stays portable', () => {
+  // An absolute path here would name one developer's home directory and break
+  // for every teammate who clones the project.
+  const p = runtimePath('claude', '/srv/app', 'visualkan');
+  assert.equal(p, '.claude/skills/visualkan/scripts/visualkan-run.mjs');
+  assert.ok(!p.includes('srv/app'), 'project scope must not embed the project root');
+});
+
+test('every written path uses forward slashes on every platform', () => {
+  // Verified by running: forward slashes work in bash, cmd.exe, and PowerShell,
+  // including paths containing a space. A backslash does not.
+  for (const key of Object.keys(PLATFORMS)) {
+    for (const name of Object.keys(SKILLS)) {
+      assert.ok(!runtimePath(key, null, name).includes('\\'), `${key}/${name} global`);
+      assert.ok(!skillDocPath(key, null, name).includes('\\'), `${key}/${name} doc`);
+    }
+  }
+});
+
+test('a home directory containing a space survives the written path', () => {
+  // The 0.1.0 bug, in its new location.
+  assert.equal(toPosix('C:\\Users\\Davi Muammar\\x'), 'C:/Users/Davi Muammar/x');
+  const p = runtimePath('claude', '/c/Users/Davi Muammar/proj', 'visualkan');
+  assert.ok(!p.includes('\\'));
+});
+
+test('runtimePath rejects an unknown platform and an unknown skill', () => {
+  assert.throws(() => runtimePath('emacs', null, 'visualkan'), /Unknown platform "emacs"/);
+  assert.throws(() => runtimePath('claude', null, 'nope'), /Unknown skill "nope"/);
+});
+
+test('runtimePath refuses --project for a global-only platform', () => {
+  assert.throws(() => runtimePath('openclaw', '/srv/app', 'visualkan'), /supports global scope only/);
+});
+
+// --- placeholder substitution ----------------------------------------------
+
+test('substitution leaves no placeholder behind in either skill body', () => {
+  // A leftover {{...}} reaches the agent as literal text and breaks the run.
+  const values = substitutions('claude', null);
+  for (const name of Object.keys(SKILLS)) {
+    const { md } = skillSourceFiles(name);
+    const out = applySubstitutions(readFileSync(md, 'utf8'), values);
+    assert.ok(!out.includes('{{'), `${name}.md still holds a placeholder after substitution`);
+  }
+});
+
+test('every placeholder used by a skill body has a substitution rule', () => {
+  // Adding a placeholder without wiring it must fail here, not in the field.
+  const values = substitutions('claude', null);
+  for (const name of Object.keys(SKILLS)) {
+    const { md } = skillSourceFiles(name);
+    for (const [, key] of readFileSync(md, 'utf8').matchAll(/\{\{([A-Z_]+)\}\}/g)) {
+      assert.ok(key in values, `${name}.md uses {{${key}}}, which install cannot fill`);
+    }
+  }
+});
+
+test('applySubstitutions throws rather than writing an unfilled placeholder', () => {
+  assert.throws(() => applySubstitutions('run {{NO_SUCH_KEY}}', {}), /has no value for/);
+});
+
+test('the substituted body carries a runnable absolute path', () => {
+  const values = substitutions('claude', null);
+  const { md } = skillSourceFiles('visualkan');
+  const out = applySubstitutions(readFileSync(md, 'utf8'), values);
+  assert.ok(out.includes(`node "${values.RUNTIME_PATH}"`), 'the body must quote the written path');
+});
+
+// --- version skew (ADR 0006) -----------------------------------------------
+
+test('installedVersion reads the version an install wrote', () => {
+  const read = () => JSON.stringify({ version: '0.4.1' });
+  assert.equal(installedVersion('/anywhere', read, () => true), '0.4.1');
+});
+
+test('installedVersion returns null rather than throwing on a missing or broken file', () => {
+  assert.equal(installedVersion('/anywhere', () => '{}', () => false), null);
+  assert.equal(installedVersion('/anywhere', () => 'not json', () => true), null);
+  assert.equal(installedVersion('/anywhere', () => '{}', () => true), null);
 });

@@ -207,7 +207,9 @@ Replace `claude` with your platform:
 
 Use `visualkan install agents` for Cursor, GitHub Copilot, ChatGPT desktop, OpenCode, Windsurf, Roo Code, and Trae.
 
-One command installs two skills. `visualkan` goes to the directory in the table, and `visualkan-wizard` goes to a sibling directory beside it. The wizard needs that layout, so do not move either directory by hand.
+One command installs two skills. `visualkan` goes to the directory in the table, and `visualkan-wizard` goes to a sibling directory beside it.
+
+Install also writes a copy of the image generation code into `<skill>/scripts/`, and writes that file's resolved path into each skill. Your assistant runs it by that path, so it never needs to find a `visualkan` command on your PATH. Do not move either directory by hand, because the written path stops matching.
 
 ### Project scope
 
@@ -230,14 +232,18 @@ visualkan help                 # full usage
 
 `visualkan controls` prints the catalog from the code, so it never goes stale. It also reports which backends this machine can reach, without printing a key.
 
+`visualkan status` marks a skill `STALE` when a newer version is installed but the skill folder still holds the old one. It marks a skill `no-runtime` when the folder predates version 0.5.0 and has no `scripts/` copy. Both are fixed the same way, by upgrading.
+
 ### Upgrading
+
+Both commands are required. The first updates the package. The second rewrites the installed skills and their bundled `scripts/` copy.
 
 ```bash
 npm install -g @dapih/visualkan@latest
 visualkan install claude
 ```
 
-The second command overwrites the installed skill with the new version. Run it for each platform you use.
+Run the second command for each platform you use. Skipping it leaves the old skill in place, and `visualkan status` will say so.
 
 ## Usage
 

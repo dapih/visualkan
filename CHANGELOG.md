@@ -2,11 +2,28 @@
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.5.0 | 2026-08-15 | The Runtime installs beside the skill, so an agent never needs PATH |
 | 0.4.1 | 2026-08-14 | The npm package moved to the `@dapih/visualkan` scope |
 | 0.4.0 | 2026-08-14 | A wizard skill, a clarification step, and `visualkan controls` |
 | 0.3.0 | 2026-08-14 | Fixes found by the first live generation run, and draw-level for infographic |
 | 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### v0.5.0 — The Runtime installs beside the skill
+
+A user installed Visualkan on ChatGPT desktop and it failed. The platform could not resolve the `visualkan` command, even though the npm global bin directory was on the Windows User PATH and held the shims. A spawned shell does not always inherit that PATH.
+
+The skill's answer was to reinstall the npm package. That advice could never be right: `visualkan install` **is** that package, so any machine with a skill folder already has it.
+
+- **`visualkan install` now writes the Runtime into `<skill>/scripts/`**, and writes its resolved path into the skill body. An agent runs `node "<path>" generate`, which needs no PATH lookup and no particular working directory. Verified in a shell where `visualkan` is genuinely not found
+- **The path branches on scope.** Global scope gets an absolute path, because `cmd.exe` does not expand `~`. Project scope gets a project-relative path, so a committed skill folder still works for a teammate. Every written path uses forward slashes, which work in bash, `cmd.exe`, and PowerShell alike, including paths containing a space
+- **The CLI is now two files.** The **Installer** (`visualkan.mjs`) owns `install`, `uninstall`, `status`, and `sync-version`. The **Runtime** (`scripts/visualkan-run.mjs`) owns every Control and image generation. The Installer imports the Runtime, so `visualkan controls` and `visualkan generate` keep working from the global command
+- **`visualkan status` reports version skew.** Upgrading is two commands: `npm install -g @dapih/visualkan@latest`, then `visualkan install <platform>`
+- **The Wizard hands over with a literal token**, `VISUALKAN-WIZARD-RUN`. The previous prose contract between the two skill files did not survive its first real run, and the confirmation step never fired
+- **The confirmation block now says why a Backend won**, so a user who expected their platform's own image generation can see in one line that none was detected
+- **`native` is described by capability, not by product name.** Naming Antigravity and Codex taught the agent that no other platform qualifies
+- **The Wizard's first step is renamed** from "Read the Control catalog" to "Run the controls command". The word *catalog* sent one agent hunting through a skill library instead of running the command
+- **[ADR 0006](docs/adr/0006-the-runtime-installs-beside-the-skill.md)** records the decision. **62 tests**, up from 49
 
 ### v0.4.1 — The package moved to a scope
 
