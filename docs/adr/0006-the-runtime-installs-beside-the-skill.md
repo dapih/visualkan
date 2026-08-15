@@ -14,6 +14,8 @@ The Installer imports the Runtime rather than duplicating it, so `visualkan cont
 
 The written path branches on scope, decided from the `--project` flag at install time. Global scope receives an absolute path, because no project root exists to be relative to. Project scope receives a path relative to the project root, so a committed skill folder still works for a teammate whose home directory differs. This is not the run-time fallback chain that ADR 0004 rejects: it resolves to exactly one literal path per install, and nothing retries.
 
+[ADR 0007](0007-the-runtime-serves-templates-and-gates-prompts.md) extends this: install also copies `references/` beside `scripts/`, and the Runtime resolves those files relative to itself, so the Style Templates needed no placeholder of their own.
+
 ## Consequences
 
 - An installed `SKILL.md` is no longer a byte-for-byte copy of the source. It is a template with one substitution. A skill folder moved by hand now breaks, where before it merely failed to be found. The test suite asserts that no `{{` survives substitution, and that every placeholder a body uses has a rule.

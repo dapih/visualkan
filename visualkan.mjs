@@ -11,7 +11,14 @@ import { homedir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { UserError, parseArgs, controlsReport, cmdGenerate } from './scripts/visualkan-run.mjs';
+import {
+  UserError,
+  parseArgs,
+  controlsReport,
+  cmdGenerate,
+  readTemplate,
+  STYLES,
+} from './scripts/visualkan-run.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PRIMARY_SKILL = 'visualkan';
@@ -19,6 +26,10 @@ const PRIMARY_SKILL = 'visualkan';
 // The Runtime file, by its name in this package and its name once installed.
 const RUNTIME_FILE = 'visualkan-run.mjs';
 const RUNTIME_DIR = 'scripts';
+
+// Style Templates ride along beside the Runtime, which resolves them relative
+// to itself. The agent never addresses them directly. See ADR 0007.
+const REFERENCE_DIR = 'references';
 
 // --- Skill registry --------------------------------------------------------
 // Each skill ships as skill/<name>.md plus skill/<name>.metadata.json, and
@@ -168,16 +179,27 @@ function cmdInstall(flags, positional) {
   if (!existsSync(runtimeSource)) {
     throw new UserError(`The Runtime is missing from the package at ${runtimeSource}.`);
   }
+  for (const style of Object.keys(STYLES)) {
+    const source = join(HERE, REFERENCE_DIR, `style-${style}.md`);
+    if (!existsSync(source)) {
+      throw new UserError(`The Style Template for "${style}" is missing from the package at ${source}.`);
+    }
+  }
 
   for (const skillName of Object.keys(SKILLS)) {
     const { md, meta } = skillSourceFiles(skillName);
     const dir = targetDir(platformKey, projectRoot, skillName);
     mkdirSync(join(dir, RUNTIME_DIR), { recursive: true });
+    mkdirSync(join(dir, REFERENCE_DIR), { recursive: true });
 
     // The skill body is templated, not copied. It carries the resolved path.
     writeFileSync(join(dir, 'SKILL.md'), applySubstitutions(readFileSync(md, 'utf8'), values));
     copyFileSync(meta, join(dir, 'metadata.json'));
     copyFileSync(runtimeSource, join(dir, RUNTIME_DIR, RUNTIME_FILE));
+    for (const style of Object.keys(STYLES)) {
+      const file = `style-${style}.md`;
+      copyFileSync(join(HERE, REFERENCE_DIR, file), join(dir, REFERENCE_DIR, file));
+    }
     console.log(`Installed ${skillName} v${version()} to ${join(dir, 'SKILL.md')}`);
   }
   console.log(`Runtime path written into both skills: ${values.RUNTIME_PATH}`);
@@ -269,6 +291,7 @@ const USAGE = `visualkan v__VERSION__
   visualkan uninstall <platform> [--project DIR]
   visualkan status
   visualkan controls
+  visualkan template --style NAME
   visualkan generate --prompt-file PATH [options]
 
 Platforms: ${Object.keys(PLATFORMS).join(', ')}
@@ -300,6 +323,9 @@ async function main(argv) {
     case 'status': return cmdStatus();
     // Forwarded to the Runtime, which is the one place these live.
     case 'controls': return void console.log(controlsReport(process.env));
+    case 'template': return void console.log(readTemplate(
+      typeof flags.style === 'string' ? flags.style : 'whiteboard'
+    ));
     case 'generate': return cmdGenerate(flags);
     case 'sync-version': return cmdSyncVersion();
     case 'version': return void console.log(version());

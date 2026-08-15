@@ -2,12 +2,23 @@
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.6.0 | 2026-08-15 | Style templates move to reference files, and `generate` gates the prompt |
 | 0.5.0 | 2026-08-15 | The Runtime installs beside the skill, so an agent never needs PATH |
 | 0.4.1 | 2026-08-14 | The npm package moved to the `@dapih/visualkan` scope |
 | 0.4.0 | 2026-08-14 | A wizard skill, a clarification step, and `visualkan controls` |
 | 0.3.0 | 2026-08-14 | Fixes found by the first live generation run, and draw-level for infographic |
 | 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### v0.6.0 — Style templates move out, and the prompt is checked
+
+`skill/visualkan.md` was 52 KB, and 60% of it was the seven style templates. Exactly one applies to any run, so about 6,700 tokens were loaded and thrown away every time the skill fired.
+
+- **The seven templates now live in `references/style-<name>.md`.** The skill body fell from about 13,030 tokens to 5,159. A run loads one template of roughly 1,100 instead of seven totalling 7,847
+- **`visualkan template --style <name>` serves them.** The agent runs a command rather than reading a path it guessed, the same pattern `controls` already uses. The Runtime resolves `references/` relative to itself, so no new install placeholder was needed
+- **`generate` now rejects a prompt that skipped the template.** Each style declares the sections its prompt must carry, and a prompt missing them, or shorter than 300 words, fails before any money is spent. Without this the split would have traded tokens for silently worse images, which is the failure ADR 0006 was written about
+- **The Mermaid block stayed in the skill body.** It is also conditional, but nothing can check a Mermaid parse the way `generate` can check a prompt, so moving it would have bought 6% of the file for an invisible failure mode
+- **[ADR 0007](docs/adr/0007-the-runtime-serves-templates-and-gates-prompts.md)** records the decision, and narrows ADR 0004: the agent still writes the prompt, but the CLI decides whether it is admissible. **72 tests**, up from 63
 
 ### v0.5.0 — The Runtime installs beside the skill
 

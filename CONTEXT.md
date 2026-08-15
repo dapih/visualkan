@@ -104,6 +104,10 @@ _Avoid_: analysis, extraction, breakdown, deep analysis
 The step that asks the user for missing Content. It runs when no Content exists, or when a Content Analysis cannot reach the Section Floor. It never runs because two Styles both fit.
 _Avoid_: grilling, brainstorm, interrogation, follow-up questions
 
+**Style Template**:
+The markdown file that shapes an Image Prompt for one Style. One file per Style, in `references/style-<name>.md`. The Runtime serves it through `template --style <name>`, and the agent never reads it by path. See ADR 0007.
+_Avoid_: prompt template, style file, reference, template file
+
 **Image Prompt**:
 The detailed text that Visualkan sends to a Backend to produce one Frame. Built from a Content Analysis and a Style template.
 _Avoid_: prompt, generation prompt, constructed prompt

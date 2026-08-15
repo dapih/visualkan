@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // The Installer owns install, uninstall, status, and sync-version.
 import {
@@ -30,6 +31,10 @@ import {
   nextOutputPath,
   availableBackends,
   controlsReport,
+  templatePath,
+  readTemplate,
+  promptGaps,
+  PROMPT_MIN_WORDS,
   STYLES,
   STYLE_SIZES,
   DRAW_LEVELS,
@@ -373,6 +378,71 @@ test('controlsReport describes native by capability, not by product name', () =>
   const report = controlsReport({});
   assert.match(report, /generate_image tool/);
   assert.ok(!/native\s+Antigravity and Codex/.test(report), 'native must not be a product list');
+});
+
+// --- Style Templates and the prompt gate (ADR 0007) ------------------------
+
+test('every style has a template file, and every template file has a style', () => {
+  // Adding a style without its template, or the reverse, must fail here.
+  const dir = new URL('../references/', import.meta.url);
+  const files = readdirSync(dir).filter((f) => f.startsWith('style-') && f.endsWith('.md'));
+  const fromFiles = files.map((f) => f.slice('style-'.length, -'.md'.length)).sort();
+  assert.deepEqual(fromFiles, Object.keys(STYLES).sort());
+});
+
+test('every style declares the sections its prompt must carry', () => {
+  for (const [name, style] of Object.entries(STYLES)) {
+    assert.ok(Array.isArray(style.requires) && style.requires.length >= 4,
+      `${name} needs a requires list the gate can check`);
+  }
+});
+
+test('every required section actually appears in that style template', () => {
+  // A requirement absent from the template would reject every honest prompt.
+  for (const [name, style] of Object.entries(STYLES)) {
+    const body = readTemplate(name, fileURLToPath(new URL('../scripts/', import.meta.url)));
+    for (const header of style.requires) {
+      assert.ok(body.includes(header), `${name} template never mentions "${header}"`);
+    }
+  }
+});
+
+test('templatePath rejects an unknown style', () => {
+  assert.throws(() => templatePath('cubist'), /Unknown style "cubist"/);
+});
+
+test('readTemplate explains a missing file instead of throwing ENOENT', () => {
+  assert.throws(
+    () => readTemplate('whiteboard', '/nowhere', () => '', () => false),
+    /Style Template for "whiteboard" is missing/
+  );
+});
+
+test('promptGaps rejects a prompt that skipped the template', () => {
+  const gaps = promptGaps('Draw a nice whiteboard about DNS.', 'whiteboard');
+  assert.ok(gaps.some((g) => /at least 300/.test(g)), 'must catch the word floor');
+  assert.ok(gaps.some((g) => /missing sections/.test(g)), 'must catch the missing sections');
+});
+
+test('promptGaps catches missing sections even when the prompt is long enough', () => {
+  const padded = 'word '.repeat(PROMPT_MIN_WORDS + 50);
+  const gaps = promptGaps(padded, 'whiteboard');
+  assert.equal(gaps.length, 1);
+  assert.match(gaps[0], /missing sections: CANVAS/);
+});
+
+test('promptGaps passes a prompt that carries every required section', () => {
+  // The false-positive guard. Rejecting honest prompts would be worse than the
+  // problem this gate exists to solve.
+  const body = STYLES.whiteboard.requires.map((h) => `${h}: something specific here.`).join('\n');
+  const prompt = `${body}\n${'detail '.repeat(PROMPT_MIN_WORDS)}`;
+  assert.deepEqual(promptGaps(prompt, 'whiteboard'), []);
+});
+
+test('each style is gated against its own sections, not a shared list', () => {
+  const mockupish = STYLES.mockup.requires.map((h) => `${h}: x.`).join('\n') + ' ' + 'w '.repeat(400);
+  assert.deepEqual(promptGaps(mockupish, 'mockup'), []);
+  assert.ok(promptGaps(mockupish, 'whiteboard').length, 'a mockup prompt must not satisfy whiteboard');
 });
 
 // --- installed paths (ADR 0006) --------------------------------------------

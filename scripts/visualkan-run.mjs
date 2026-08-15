@@ -12,8 +12,13 @@
 // reads that to report skew.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { join, dirname } from 'node:path';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+// This file sits in scripts/, so references/ is its sibling one level up. That
+// holds in the package and in an installed skill folder alike, because install
+// copies both directories into the same parent.
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 export const DEFAULT_PREFIX = 'visualkan';
 
@@ -36,15 +41,54 @@ export const DETECT_ORDER = ['openai', 'gemini', 'openrouter'];
 // serves the Installer, the skill, and the Wizard, so a menu cannot drift from
 // the code. A list of legal values is policy, which ADR 0004 gives to the CLI.
 
+// `requires` lists the section headers a finished Image Prompt must carry for
+// that Style. They are taken from the Style Template itself, and `generate`
+// rejects a prompt missing any of them.
+//
+// This is the gate that makes moving the templates out of the skill body safe.
+// Without it, an agent that skipped the template would produce a weaker prompt
+// and nothing would notice. See ADR 0007.
 export const STYLES = {
-  whiteboard: { size: '1536x1024', blurb: 'Hand-drawn teaching board. Markers, doodles, arrows, one color per Section.' },
-  infographic: { size: '1024x1536', blurb: 'Numbered editorial layout. Portrait, icon per Section, best for text-heavy Content.' },
-  presentation: { size: '1536x1024', blurb: 'One keynote slide. A single dominant visual and 2 to 5 takeaways.' },
-  diagram: { size: '1024x1024', blurb: 'Technical figure. Boxes, arrows, exact labels, engineering documentation.' },
-  mindmap: { size: '1536x1024', blurb: 'Radial and colorful. Organic branches from a center, vibrant at every Draw Level.' },
-  'mindmap-structured': { size: '1536x1024', blurb: 'XMind style. Muted palette, badges and counts, ready for a board pack.' },
-  mockup: { size: '1024x1536', blurb: 'UI wireframe inside a device frame. Pair it with --device.' },
+  whiteboard: {
+    size: '1536x1024',
+    blurb: 'Hand-drawn teaching board. Markers, doodles, arrows, one color per Section.',
+    requires: ['CANVAS', 'TITLE', 'LAYOUT', 'SECTIONS', 'COLORS', 'TYPOGRAPHY', 'OVERALL FEEL'],
+  },
+  infographic: {
+    size: '1024x1536',
+    blurb: 'Numbered editorial layout. Portrait, icon per Section, best for text-heavy Content.',
+    requires: ['CANVAS', 'HEADER', 'COLOR PALETTE', 'LAYOUT', 'NUMBERED SECTIONS', 'TYPOGRAPHY', 'OVERALL FEEL'],
+  },
+  presentation: {
+    size: '1536x1024',
+    blurb: 'One keynote slide. A single dominant visual and 2 to 5 takeaways.',
+    requires: ['CANVAS', 'TITLE', 'VISUAL HIERARCHY', 'PRIMARY VISUAL', 'KEY POINTS', 'TYPOGRAPHY', 'OVERALL FEEL'],
+  },
+  diagram: {
+    size: '1024x1024',
+    blurb: 'Technical figure. Boxes, arrows, exact labels, engineering documentation.',
+    requires: ['CANVAS', 'TITLE', 'DIAGRAM TYPE', 'NODES/ELEMENTS', 'CONNECTIONS', 'TYPOGRAPHY', 'OVERALL FEEL'],
+  },
+  mindmap: {
+    size: '1536x1024',
+    blurb: 'Radial and colorful. Organic branches from a center, vibrant at every Draw Level.',
+    requires: ['CANVAS', 'CENTER NODE', 'MAIN BRANCHES', 'COLORS', 'TYPOGRAPHY', 'OVERALL FEEL'],
+  },
+  'mindmap-structured': {
+    size: '1536x1024',
+    blurb: 'XMind style. Muted palette, badges and counts, ready for a board pack.',
+    requires: ['CANVAS', 'CENTER NODE', 'MAIN BRANCHES', 'COLORS', 'LAYOUT RULES', 'TYPOGRAPHY', 'OVERALL FEEL'],
+  },
+  mockup: {
+    size: '1024x1536',
+    blurb: 'UI wireframe inside a device frame. Pair it with --device.',
+    requires: ['BACKGROUND', 'DEVICE FRAME', 'SPACING AND LAYOUT', 'COLORS', 'TYPOGRAPHY', 'OVERALL FEEL'],
+  },
 };
+
+// The Prompt Quality Checklist in the skill already states this floor. It is
+// stated here too, because a number the CLI enforces cannot be prose alone.
+export const PROMPT_MIN_WORDS = 300;
 
 // resolveSize and the test suite read the sizes alone. Derived, never a second copy.
 export const STYLE_SIZES = Object.fromEntries(
@@ -216,6 +260,45 @@ export function controlsReport(env) {
   return lines.join('\n');
 }
 
+// --- Style Templates -------------------------------------------------------
+// A Style Template is a markdown file beside this one. The agent obtains it by
+// running `template --style <name>`, never by reading a path it guessed, so a
+// moved or missing file fails here with a clear message. See ADR 0007.
+
+export function templatePath(style, here = HERE) {
+  if (!STYLES[style]) {
+    throw new UserError(
+      `Unknown style "${style}". Choose one of: ${Object.keys(STYLES).join(', ')}.`
+    );
+  }
+  return join(here, '..', 'references', `style-${style}.md`);
+}
+
+export function readTemplate(style, here = HERE, read = readFileSync, exists = existsSync) {
+  const path = templatePath(style, here);
+  if (!exists(path)) {
+    throw new UserError(
+      `The Style Template for "${style}" is missing at ${path}.\n` +
+      'The install is stale or incomplete. Run: visualkan install <platform>'
+    );
+  }
+  return read(path, 'utf8');
+}
+
+// Checks a finished Image Prompt against what its Style requires. Returns the
+// missing pieces rather than throwing, so callers choose the wording.
+export function promptGaps(prompt, style) {
+  const gaps = [];
+  const words = prompt.trim().split(/\s+/).filter(Boolean).length;
+  if (words < PROMPT_MIN_WORDS) {
+    gaps.push(`only ${words} words, and a prompt needs at least ${PROMPT_MIN_WORDS}`);
+  }
+  const required = STYLES[style]?.requires ?? [];
+  const missing = required.filter((header) => !prompt.includes(header));
+  if (missing.length) gaps.push(`missing section${missing.length > 1 ? 's' : ''}: ${missing.join(', ')}`);
+  return gaps;
+}
+
 export function resolveSize({ size, style, device }) {
   if (size) {
     if (!/^\d+x\d+$/.test(size)) throw new UserError(`--size must look like 1536x1024, got "${size}".`);
@@ -345,11 +428,25 @@ export async function cmdGenerate(flags) {
   const prompt = readFileSync(promptFile, 'utf8').trim();
   if (!prompt) throw new UserError(`Prompt file is empty: ${promptFile}`);
 
+  const style = typeof flags.style === 'string' ? flags.style : 'whiteboard';
+
+  // The gate. A prompt that skipped the Style Template fails here, before any
+  // money is spent, instead of quietly producing a weaker image. See ADR 0007.
+  const gaps = promptGaps(prompt, style);
+  if (gaps.length) {
+    throw new UserError(
+      `This prompt does not match what the "${style}" style requires:\n` +
+      gaps.map((g) => `  - ${g}`).join('\n') + '\n\n' +
+      `Read the template and rebuild the prompt from it:\n` +
+      `  node "${join(HERE, 'visualkan-run.mjs')}" template --style ${style}`
+    );
+  }
+
   const backend = detectBackend(typeof flags.backend === 'string' ? flags.backend : null, process.env);
   const model = validateModel(backend, typeof flags.model === 'string' ? flags.model : null);
   const size = resolveSize({
     size: typeof flags.size === 'string' ? flags.size : null,
-    style: typeof flags.style === 'string' ? flags.style : 'whiteboard',
+    style,
     device: typeof flags.device === 'string' ? flags.device : 'mobile',
   });
 
@@ -405,6 +502,7 @@ export async function cmdGenerate(flags) {
 export const RUNTIME_USAGE = `visualkan runtime
 
   node <this file> controls
+  node <this file> template --style NAME
   node <this file> generate --prompt-file PATH [options]
 
 generate options:
@@ -423,6 +521,9 @@ export async function runMain(argv) {
   const { flags, positional } = parseArgs(argv);
   switch (positional[0]) {
     case 'controls': return void console.log(controlsReport(process.env));
+    case 'template': return void console.log(readTemplate(
+      typeof flags.style === 'string' ? flags.style : 'whiteboard'
+    ));
     case 'generate': return cmdGenerate(flags);
     case undefined:
     case 'help': return void console.log(RUNTIME_USAGE);

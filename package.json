@@ -39,6 +39,7 @@
   "files": [
     "visualkan.mjs",
     "scripts/",
+    "references/",
     "skill/",
     "README.md",
     "CHANGELOG.md",
