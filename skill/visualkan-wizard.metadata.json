@@ -1,6 +1,6 @@
 {
   "name": "visualkan-wizard",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Walks the user through the Visualkan Controls one at a time, then hands the run to the visualkan skill. Invoked by name only.",
   "author": {
     "name": "Davi Muammar",

@@ -1,6 +1,6 @@
 {
   "name": "@dapih/visualkan",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Turn any content into a visual explanation: whiteboard, infographic, presentation, diagram, mind map, or UI mockup. Installs as a skill into AI coding assistants.",
   "keywords": [
     "visualkan",
