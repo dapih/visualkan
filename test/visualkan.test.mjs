@@ -281,6 +281,16 @@ test('every registered skill ships both of its source files', () => {
   }
 });
 
+test('the package declares no dependencies of any kind', () => {
+  // AGENTS.md: zero dependencies, runtime and development alike. A stray
+  // `npm install` once wrote a dependency on this very package into
+  // package.json, so every install pulled a second, older copy of itself.
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+    assert.deepEqual(pkg[field] ?? {}, {}, `${field} must stay empty`);
+  }
+});
+
 test('the npm version hook stages every file that sync-version writes', () => {
   // The hook named skill/metadata.json after that file was renamed, so
   // `npm version minor` died with git exit 128 part way through the bump.
