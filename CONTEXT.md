@@ -38,6 +38,10 @@ _Avoid_: host, client, agent, tool, IDE
 Where an installed copy of Visualkan applies. Global scope covers every project for one user. Project scope covers one project.
 _Avoid_: install location, install level
 
+**Channel**:
+The route by which Visualkan reaches a Platform. The npm package, the Claude Code plugin marketplace, `npx skills add`, and a manual copy of the files are each a Channel.
+_Avoid_: install method, distribution, route, delivery
+
 ### The output
 
 **Visual Explanation**:
