@@ -45,6 +45,8 @@ Runtime at C:/Users/DAVIMU~1/.../testplug/scripts/run.mjs and skill dir C:/Users
 
 **The substituted path uses forward slashes on every OS.** The normalizer runs before insertion, and the observed output confirms it on Windows. This is the same portability rule ADR 0006 arrived at by experiment. Claude Code already emits the form the ADR requires.
 
+> **Extended by the research for issue #10.** This file inferred that only `${CLAUDE_PLUGIN_ROOT}` was normalised, because the replace site shows a bare variable. That variable is already normalised upstream, so `${CLAUDE_SKILL_DIR}` receives the same treatment, including for a plain non-plugin skill. See `skill-directory-token-shells.md`.
+
 **It is a string substitution, not an environment variable.** `CLAUDE_PLUGIN_ROOT` is empty in the agent's `Bash` environment — verified in this session, matching the sibling finding in `platform-skill-directory.md`. The binary sets it in the process environment of *hook* commands only, and rejects it elsewhere with `Hook command references ${...} but the hook is not associated with a plugin`. The agent must use the literal path it was handed. It must never write `${CLAUDE_PLUGIN_ROOT}` into a shell command of its own, because that expands to nothing.
 
 **Substitution reaches the skill body only, never a file read later.** Reading a plugin's `SKILL.md` with the `Read` tool returns the raw token, unexpanded — observed repeatedly while reading Anthropic's own `plugin-dev` skill during this research. So a `references/style-*.md` file must not rely on the placeholder. ADR 0007 already avoids this by having the Runtime resolve `references/` relative to itself, so nothing changes.
