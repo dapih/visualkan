@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,6 +14,7 @@ import {
   rewriteRuntimePath,
   WIZARD_ANCHOR_LINE,
   rewriteWizardSiblingPath,
+  findPluginCacheCopies,
   installedVersion,
   toPosix,
   PLATFORMS,
@@ -245,10 +246,12 @@ test('targetDir rejects an unknown platform and lists the valid ones', () => {
   assert.throws(() => targetDir('emacs', null), /Unknown platform "emacs"/);
 });
 
-test('every platform declares a label and a global path', () => {
+test('every platform declares a label, a global path, and cites the research file', () => {
+  assert.deepEqual(PLATFORMS.openclaw.global, ['.openclaw', 'skills'], 'openclaw must target .openclaw/skills');
   for (const [key, platform] of Object.entries(PLATFORMS)) {
     assert.ok(platform.label, `${key} needs a label`);
     assert.ok(Array.isArray(platform.global) && platform.global.length, `${key} needs a global path`);
+    assert.equal(platform.citation, 'docs/research/platform-install-targets.md', `${key} must cite the research file`);
   }
 });
 
@@ -704,8 +707,125 @@ test('status reports a copy that install wrote, with its version', (t) => {
   cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
 
   const output = logs.join('\n');
-  assert.ok(output.includes(`claude       visualkan         v${pkg.version}`), `status must report claude visualkan v${pkg.version}`);
-  assert.ok(output.includes(`claude       visualkan-wizard  v${pkg.version}`), `status must report claude visualkan-wizard v${pkg.version}`);
+  assert.ok(output.includes('Claude Code') && output.includes('visualkan') && output.includes(`v${pkg.version}`));
+  assert.ok(output.includes('Claude Code') && output.includes('visualkan-wizard') && output.includes(`v${pkg.version}`));
+});
+
+test('status reports a copy placed by hand in a Platform skill root, and names the command that owns it', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-status-hand-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const codexDir = targetDir('codex', null, 'visualkan', tmpHome);
+  mkdirSync(codexDir, { recursive: true });
+  writeFileSync(join(codexDir, 'SKILL.md'), 'hand placed skill');
+  writeFileSync(join(codexDir, 'visualkan.metadata.json'), JSON.stringify({ version: '0.6.0' }));
+
+  const logs = [];
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+  const output = logs.join('\n');
+  assert.ok(output.includes('Codex CLI'), 'reports Codex CLI platform');
+  assert.ok(output.includes('visualkan'), 'reports visualkan skill');
+});
+
+test('status marks STALE only at the Installer target path', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-status-stale-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const geminiDir = targetDir('gemini', null, 'visualkan', tmpHome);
+  mkdirSync(geminiDir, { recursive: true });
+  writeFileSync(join(geminiDir, 'SKILL.md'), 'older skill');
+  writeFileSync(join(geminiDir, 'visualkan.metadata.json'), JSON.stringify({ version: '0.1.0' }));
+
+  const logs = [];
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+  const output = logs.join('\n');
+  assert.ok(output.includes('STALE'), 'marks stale at installer target');
+});
+
+test('status reports not checked when the plugin cache glob matches nothing', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-status-empty-cache-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const logs = [];
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+  const output = logs.join('\n');
+  assert.ok(output.includes('Not checked: Claude Code plugin cache (not checked / none found)'));
+  assert.ok(output.includes('Gemini CLI folder-trust state'));
+});
+
+test('status reports two hits when the plugin cache holds two versions of the plugin', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-status-cache2-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const v1Dir = join(tmpHome, '.claude', 'plugins', 'cache', 'visualkan', 'visualkan', '0.5.0', 'skills', 'visualkan');
+  const v2Dir = join(tmpHome, '.claude', 'plugins', 'cache', 'visualkan', 'visualkan', '0.6.0', 'skills', 'visualkan');
+  mkdirSync(v1Dir, { recursive: true });
+  mkdirSync(v2Dir, { recursive: true });
+  writeFileSync(join(v1Dir, 'SKILL.md'), 'v0.5.0');
+  writeFileSync(join(v1Dir, 'visualkan.metadata.json'), JSON.stringify({ version: '0.5.0' }));
+  writeFileSync(join(v2Dir, 'SKILL.md'), 'v0.6.0');
+  writeFileSync(join(v2Dir, 'visualkan.metadata.json'), JSON.stringify({ version: '0.6.0' }));
+
+  const logs = [];
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+  const output = logs.join('\n');
+  assert.ok(output.includes('Claude Code Plugin'), 'reports plugin cache platform');
+  assert.ok(output.includes('v0.5.0') && output.includes('v0.6.0'), 'reports both versions found in cache');
+  assert.ok(output.includes('claude plugin update visualkan'), 'names owning command');
+});
+
+test('status scans project roots only when --project is given', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-proj-scan-h-'));
+  const tmpProj = mkdtempSync(join(tmpdir(), 'vk-test-proj-scan-p-'));
+  t.after(() => {
+    rmSync(tmpHome, { recursive: true, force: true });
+    rmSync(tmpProj, { recursive: true, force: true });
+  });
+
+  const projSkill = targetDir('claude', tmpProj, 'visualkan', tmpHome);
+  mkdirSync(projSkill, { recursive: true });
+  writeFileSync(join(projSkill, 'SKILL.md'), 'project skill');
+  writeFileSync(join(projSkill, 'visualkan.metadata.json'), JSON.stringify({ version: '0.6.0' }));
+
+  const logsWithout = [];
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logsWithout.push(msg) });
+  assert.ok(!logsWithout.join('\n').includes('Claude Code (project)'), 'must not scan project without flag');
+
+  const logsWith = [];
+  cmdStatus({ project: tmpProj }, [], { home: tmpHome, log: (msg) => logsWith.push(msg) });
+  assert.ok(logsWith.join('\n').includes('Claude Code (project)'), 'must scan project with flag');
+});
+
+test('status warns when a Claude Code personal-scope copy shadows a project-scope copy', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-shadow-h-'));
+  const tmpProj = mkdtempSync(join(tmpdir(), 'vk-test-shadow-p-'));
+  t.after(() => {
+    rmSync(tmpHome, { recursive: true, force: true });
+    rmSync(tmpProj, { recursive: true, force: true });
+  });
+
+  cmdInstall({}, ['claude'], { home: tmpHome, log: () => {} });
+  cmdInstall({ project: tmpProj }, ['claude'], { home: tmpHome, log: () => {} });
+
+  const logs = [];
+  cmdStatus({ project: tmpProj }, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+  const output = logs.join('\n');
+  assert.ok(output.includes('Warning: Claude Code personal scope') && output.includes('shadows project scope'));
+});
+
+test('status reports ~/clawd as residue and deletes nothing', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-clawd-res-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const clawdDir = join(tmpHome, 'clawd', 'skills');
+  mkdirSync(clawdDir, { recursive: true });
+
+  const logs = [];
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+  const output = logs.join('\n');
+  assert.ok(output.includes('Residue:'), 'reports residue');
+  assert.ok(output.includes('clawd'), 'names clawd');
+  assert.ok(existsSync(clawdDir), 'clawd must not be deleted');
 });
 
 test('uninstall deletes the directory that install wrote', (t) => {

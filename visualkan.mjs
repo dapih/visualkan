@@ -6,7 +6,7 @@
 // Runtime must live inside one, so an agent can reach it without a PATH
 // lookup. That lifecycle seam is why the two are separate files. See ADR 0006.
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, copyFileSync, cpSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, copyFileSync, cpSync, readdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join, dirname, resolve, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -43,6 +43,7 @@ export const SKILLS = {
 };
 
 // --- Platform registry -----------------------------------------------------
+// Every entry cites docs/research/platform-install-targets.md (researched 2026-08-17).
 // `global` is relative to the home directory. `project` is relative to a
 // project root. A platform without a `project` entry supports global scope only.
 export const PLATFORMS = {
@@ -50,30 +51,36 @@ export const PLATFORMS = {
     label: 'Claude Code',
     global: ['.claude', 'skills'],
     project: ['.claude', 'skills'],
+    citation: 'docs/research/platform-install-targets.md',
   },
   antigravity: {
     label: 'Antigravity',
     global: ['.gemini', 'config', 'skills'],
     project: ['.agents', 'skills'],
+    citation: 'docs/research/platform-install-targets.md',
   },
   gemini: {
     label: 'Gemini CLI',
     global: ['.gemini', 'skills'],
     project: ['.gemini', 'skills'],
+    citation: 'docs/research/platform-install-targets.md',
   },
   codex: {
     label: 'Codex CLI',
     global: ['.codex', 'skills'],
     project: ['.codex', 'skills'],
+    citation: 'docs/research/platform-install-targets.md',
   },
   agents: {
     label: 'Open Agent Standard',
     global: ['.agents', 'skills'],
     project: ['.agents', 'skills'],
+    citation: 'docs/research/platform-install-targets.md',
   },
   openclaw: {
     label: 'OpenClaw',
-    global: ['clawd', 'skills'],
+    global: ['.openclaw', 'skills'],
+    citation: 'docs/research/platform-install-targets.md',
   },
 };
 
@@ -253,37 +260,189 @@ export function installedVersion(dir, skillNameOrRead = basename(dir), read = re
   }
 }
 
+export function findPluginCacheCopies(home = homedir()) {
+  const cacheBase = join(home, '.claude', 'plugins', 'cache');
+  if (!existsSync(cacheBase)) return [];
+
+  const copies = [];
+  try {
+    const marketplaces = readdirSync(cacheBase, { withFileTypes: true });
+    for (const mEntry of marketplaces) {
+      if (!mEntry.isDirectory()) continue;
+      const mDir = join(cacheBase, mEntry.name);
+      const plugins = readdirSync(mDir, { withFileTypes: true });
+      for (const pEntry of plugins) {
+        if (!pEntry.isDirectory()) continue;
+        const pDir = join(mDir, pEntry.name);
+        const versions = readdirSync(pDir, { withFileTypes: true });
+        for (const vEntry of versions) {
+          if (!vEntry.isDirectory()) continue;
+          const vDir = join(pDir, vEntry.name);
+          for (const skillName of Object.keys(SKILLS)) {
+            const skillDir = join(vDir, 'skills', skillName);
+            if (existsSync(join(skillDir, 'SKILL.md'))) {
+              const ver = installedVersion(skillDir, skillName) ?? vEntry.name;
+              copies.push({
+                platform: 'Claude Code Plugin',
+                platformKey: 'claude-plugin',
+                skillName,
+                version: ver,
+                dir: skillDir,
+                owner: 'claude plugin update visualkan',
+                isInstallerTarget: false,
+              });
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // If cache layout or read fails, return whatever was accumulated
+  }
+  return copies;
+}
+
 export function cmdStatus(flags = {}, positional = [], options = {}) {
-  const opts = (flags && (flags.home || flags.log || flags.packageDir)) ? flags : options;
-  const home = opts.home ?? homedir();
-  const packageDir = opts.packageDir ?? HERE;
-  const log = opts.log ?? console.log;
+  const home = options.home ?? flags.home ?? homedir();
+  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? flags.project ?? null);
+  const packageDir = options.packageDir ?? flags.packageDir ?? HERE;
+  const log = options.log ?? flags.log ?? console.log;
 
   const current = version(packageDir);
   log(`${PRIMARY_SKILL} v${current}`);
+
+  const found = [];
   let skew = false;
-  for (const key of Object.keys(PLATFORMS)) {
+
+  // 1. Scan platform global roots
+  for (const [key, platform] of Object.entries(PLATFORMS)) {
     for (const skillName of Object.keys(SKILLS)) {
       const dir = targetDir(key, null, skillName, home);
-      const installed = existsSync(join(dir, 'SKILL.md')) ? installedVersion(dir, skillName) : null;
-      const runtime = skillName === PRIMARY_SKILL ? existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE)) : true;
-      let mark = '-';
-      if (installed) {
-        mark = installed === current ? `v${installed}` : `v${installed} STALE`;
-        if (installed !== current) skew = true;
-        if (!runtime) {
-          mark += ' no-runtime';
-          skew = true;
+      if (existsSync(join(dir, 'SKILL.md'))) {
+        const ver = installedVersion(dir, skillName);
+        const runtime = skillName === PRIMARY_SKILL ? existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE)) : true;
+        let mark = '-';
+        if (ver) {
+          mark = ver === current ? `v${ver}` : `v${ver} STALE`;
+          if (ver !== current) skew = true;
+          if (!runtime) {
+            mark += ' no-runtime';
+            skew = true;
+          }
         }
+        found.push({
+          scope: 'global',
+          platform: platform.label,
+          platformKey: key,
+          skillName,
+          dir,
+          version: ver,
+          status: mark,
+          isInstallerTarget: true,
+          owner: `visualkan install ${key}`,
+        });
       }
-      log(`  ${key.padEnd(12)} ${skillName.padEnd(17)} ${mark.padEnd(16)} ${dir}`);
     }
   }
+
+  // 2. Scan platform project roots if --project was passed
+  if (projectRoot) {
+    for (const [key, platform] of Object.entries(PLATFORMS)) {
+      if (!platform.project) continue;
+      for (const skillName of Object.keys(SKILLS)) {
+        const dir = targetDir(key, projectRoot, skillName, home);
+        if (existsSync(join(dir, 'SKILL.md'))) {
+          const ver = installedVersion(dir, skillName);
+          const runtime = skillName === PRIMARY_SKILL ? existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE)) : true;
+          let mark = '-';
+          if (ver) {
+            mark = ver === current ? `v${ver}` : `v${ver} STALE`;
+            if (ver !== current) skew = true;
+            if (!runtime) {
+              mark += ' no-runtime';
+              skew = true;
+            }
+          }
+          found.push({
+            scope: 'project',
+            platform: `${platform.label} (project)`,
+            platformKey: key,
+            skillName,
+            dir,
+            version: ver,
+            status: mark,
+            isInstallerTarget: true,
+            owner: `visualkan install ${key} --project`,
+          });
+        }
+      }
+    }
+  }
+
+  // 3. Scan Claude Code plugin cache
+  const pluginCopies = findPluginCacheCopies(home);
+  for (const copy of pluginCopies) {
+    found.push({
+      scope: 'plugin-cache',
+      platform: copy.platform,
+      platformKey: copy.platformKey,
+      skillName: copy.skillName,
+      dir: copy.dir,
+      version: copy.version,
+      status: `v${copy.version} (${copy.owner})`,
+      isInstallerTarget: false,
+      owner: copy.owner,
+    });
+  }
+
+  // Print found copies
+  if (found.length > 0) {
+    log('');
+    log('Installed skills:');
+    for (const item of found) {
+      log(`  ${item.platform.padEnd(24)} ${item.skillName.padEnd(18)} ${item.status.padEnd(30)} ${item.dir}`);
+    }
+  } else {
+    log('');
+    log('No installed skills found.');
+  }
+
+  // 4. Warning for Claude Code personal scope shadowing project scope
+  if (projectRoot) {
+    const claudeGlobal = targetDir('claude', null, 'visualkan', home);
+    const claudeProject = targetDir('claude', projectRoot, 'visualkan', home);
+    if (existsSync(join(claudeGlobal, 'SKILL.md')) && existsSync(join(claudeProject, 'SKILL.md'))) {
+      log('');
+      log(`Warning: Claude Code personal scope (${claudeGlobal}) shadows project scope (${claudeProject}).`);
+    }
+  }
+
+  // 5. Residue notice for ~/clawd
+  const clawdDir = join(home, 'clawd');
+  if (existsSync(clawdDir)) {
+    log('');
+    log(`Residue: ${clawdDir} was created by an older version of Visualkan (where the OpenClaw path was incorrect). It is unused and can be safely deleted.`);
+  }
+
+  // 6. Stale/broken advice
   if (skew) {
     log('');
     log(`A skill above was installed by an older version, or is missing its Runtime.`);
     log(`Re-run: visualkan install <platform>`);
   }
+
+  // 7. Trailer line naming what was searched and what was not checked
+  const searchedParts = ['platform global roots'];
+  if (projectRoot) searchedParts.push('project roots');
+  if (pluginCopies.length > 0) searchedParts.push('Claude Code plugin cache');
+
+  const notCheckedParts = [];
+  if (pluginCopies.length === 0) notCheckedParts.push('Claude Code plugin cache (not checked / none found)');
+  notCheckedParts.push('npx skills lockfiles');
+  notCheckedParts.push('Gemini CLI folder-trust state (workspace skills require trusted folders)');
+
+  log('');
+  log(`Searched: ${searchedParts.join(', ')}. Not checked: ${notCheckedParts.join(', ')}.`);
 }
 
 // --- Version ---------------------------------------------------------------
