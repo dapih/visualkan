@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Visualkan turns content into a visual explanation, and installs as a skill into AI coding assistants. The CLI is two files: `visualkan.mjs` is the Installer, and `scripts/visualkan-run.mjs` is the Runtime that owns the controls and image generation. Install copies the Runtime into `<skill>/scripts/` and writes its path into the skill body, so an agent never needs PATH (ADR 0006). `skill/visualkan.md` is the skill body the assistant reads. The style templates live in `references/style-<name>.md`, one per style, and the Runtime serves them through `template --style <name>` (ADR 0007). `skill/visualkan-wizard.md` is a second skill that collects the controls and then hands the run to the first one. Both install together.
+Visualkan turns content into a visual explanation, and installs as a skill into AI coding assistants. The CLI is two files: `visualkan.mjs` is the Installer, and `skills/visualkan/scripts/visualkan-run.mjs` is the Runtime that owns the controls and image generation. Install copies the skill subtree into `<skill>` and writes its path into the skill body, so an agent never needs PATH (ADR 0006). `skills/visualkan/SKILL.md` is the skill body the assistant reads. The style templates live in `skills/visualkan/references/style-<name>.md`, one per style, and the Runtime serves them through `template --style <name>` (ADR 0007). `skills/visualkan-wizard/SKILL.md` is a second skill that collects the controls and then hands the run to the first one. Both install together.
 
 ## Read these before you change things
 
@@ -27,6 +27,6 @@ Run what you change. Report what you did not run, and why.
 - Every style template in `references/` branches on `--draw-level`. Keep the branches when you edit a template.
 - Each style declares `requires` in the `STYLES` object, listing the sections its prompt must carry. `generate` rejects a prompt that misses them. Renaming a section in a template means updating `requires` in the same commit, or every honest prompt starts failing.
 - The list of legal control values lives in `visualkan.mjs` and prints through `visualkan controls`. Do not copy that list into a skill file. ADR 0004 gives policy to the CLI.
-- Each skill ships as `skill/<name>.md` plus `skill/<name>.metadata.json`, and the `SKILLS` registry in `visualkan.mjs` drives install, uninstall, status, and sync-version. Adding a skill means adding one entry and two files.
-- `skill/<name>.metadata.json` carries a generated version. `npm version` writes every one through `visualkan sync-version`.
+- Each skill ships as `skills/<name>/SKILL.md`, a `<name>.metadata.json` sidecar, and a subtree. The `SKILLS` registry in `visualkan.mjs` drives install, uninstall, status, and sync-version.
+- `skills/<name>/<name>.metadata.json` carries a generated version. `npm version` writes every one through `visualkan sync-version`.
 - Commit messages follow conventional commits, and the body carries the reasoning for the change.

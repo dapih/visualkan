@@ -38,9 +38,7 @@
   },
   "files": [
     "visualkan.mjs",
-    "scripts/",
-    "references/",
-    "skill/",
+    "skills/",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -51,6 +49,6 @@
   "scripts": {
     "test": "node --test",
     "preversion": "npm test",
-    "version": "node visualkan.mjs sync-version && git add skill/"
+    "version": "node visualkan.mjs sync-version && git add skills/"
   }
 }

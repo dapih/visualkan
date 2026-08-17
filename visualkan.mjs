@@ -6,9 +6,9 @@
 // Runtime must live inside one, so an agent can reach it without a PATH
 // lookup. That lifecycle seam is why the two are separate files. See ADR 0006.
 
-import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync, copyFileSync, cpSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, dirname, resolve } from 'node:path';
+import { join, dirname, resolve, basename } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
@@ -18,7 +18,7 @@ import {
   cmdGenerate,
   readTemplate,
   STYLES,
-} from './scripts/visualkan-run.mjs';
+} from './skills/visualkan/scripts/visualkan-run.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PRIMARY_SKILL = 'visualkan';
@@ -32,10 +32,11 @@ const RUNTIME_DIR = 'scripts';
 const REFERENCE_DIR = 'references';
 
 // --- Skill registry --------------------------------------------------------
-// Each skill ships as skill/<name>.md plus skill/<name>.metadata.json, and
-// installs into its own directory named <name>. The Wizard is a separate skill
-// rather than a mode of the first one, because a platform starts a skill by
-// name or by description match, never mid-run. See ADR 0005.
+// Each skill ships as skills/<name>/SKILL.md plus
+// skills/<name>/<name>.metadata.json, and installs into its own directory named
+// <name>. The Wizard is a separate skill rather than a mode of the first one,
+// because a platform starts a skill by name or by description match, never
+// mid-run. See ADR 0005.
 export const SKILLS = {
   visualkan: 'Turns Content into a Visual Explanation',
   'visualkan-wizard': 'Guided selection of Controls',
@@ -86,10 +87,10 @@ export function toPosix(path) {
 }
 
 export function skillSourceFiles(skillName, packageDir = HERE) {
-  const md = join(packageDir, 'skill', `${skillName}.md`);
-  const meta = join(packageDir, 'skill', `${skillName}.metadata.json`);
+  const md = join(packageDir, 'skills', skillName, 'SKILL.md');
+  const meta = join(packageDir, 'skills', skillName, `${skillName}.metadata.json`);
   if (!existsSync(md) || !existsSync(meta)) {
-    throw new UserError(`Files for "${skillName}" are missing from the package at ${join(packageDir, 'skill')}.`);
+    throw new UserError(`Files for "${skillName}" are missing from the package at ${join(packageDir, 'skills', skillName)}.`);
   }
   return { md, meta };
 }
@@ -180,31 +181,25 @@ export function cmdInstall(flags = {}, positional = [], options = {}) {
   const log = options.log ?? console.log;
 
   const values = substitutions(platformKey, projectRoot, home);
-  const runtimeSource = join(packageDir, RUNTIME_DIR, RUNTIME_FILE);
+  const runtimeSource = join(packageDir, 'skills', PRIMARY_SKILL, RUNTIME_DIR, RUNTIME_FILE);
   if (!existsSync(runtimeSource)) {
     throw new UserError(`The Runtime is missing from the package at ${runtimeSource}.`);
   }
   for (const style of Object.keys(STYLES)) {
-    const source = join(packageDir, REFERENCE_DIR, `style-${style}.md`);
+    const source = join(packageDir, 'skills', PRIMARY_SKILL, REFERENCE_DIR, `style-${style}.md`);
     if (!existsSync(source)) {
       throw new UserError(`The Style Template for "${style}" is missing from the package at ${source}.`);
     }
   }
 
   for (const skillName of Object.keys(SKILLS)) {
-    const { md, meta } = skillSourceFiles(skillName, packageDir);
+    const { md } = skillSourceFiles(skillName, packageDir);
+    const sourceDir = join(packageDir, 'skills', skillName);
     const dir = targetDir(platformKey, projectRoot, skillName, home);
-    mkdirSync(join(dir, RUNTIME_DIR), { recursive: true });
-    mkdirSync(join(dir, REFERENCE_DIR), { recursive: true });
+    cpSync(sourceDir, dir, { recursive: true });
 
     // The skill body is templated, not copied. It carries the resolved path.
     writeFileSync(join(dir, 'SKILL.md'), applySubstitutions(readFileSync(md, 'utf8'), values));
-    copyFileSync(meta, join(dir, 'metadata.json'));
-    copyFileSync(runtimeSource, join(dir, RUNTIME_DIR, RUNTIME_FILE));
-    for (const style of Object.keys(STYLES)) {
-      const file = `style-${style}.md`;
-      copyFileSync(join(packageDir, REFERENCE_DIR, file), join(dir, REFERENCE_DIR, file));
-    }
     log(`Installed ${skillName} v${version(packageDir)} to ${join(dir, 'SKILL.md')}`);
   }
   log(`Runtime path written into both skills: ${values.RUNTIME_PATH}`);
@@ -232,11 +227,20 @@ export function cmdUninstall(flags = {}, positional = [], options = {}) {
 
 // Reads the version an installed skill folder was written with. That number
 // also dates the Runtime beside it, because install writes both together.
-export function installedVersion(dir, read = readFileSync, exists = existsSync) {
-  const meta = join(dir, 'metadata.json');
-  if (!exists(meta)) return null;
+export function installedVersion(dir, skillNameOrRead = basename(dir), read = readFileSync, exists = existsSync) {
+  let skillName = basename(dir);
+  let readFn = read;
+  let existsFn = exists;
+  if (typeof skillNameOrRead === 'function') {
+    readFn = skillNameOrRead;
+    existsFn = typeof read === 'function' ? read : existsSync;
+  } else if (typeof skillNameOrRead === 'string') {
+    skillName = skillNameOrRead;
+  }
+  const meta = join(dir, `${skillName}.metadata.json`);
+  if (!existsFn(meta)) return null;
   try {
-    return JSON.parse(read(meta, 'utf8')).version ?? null;
+    return JSON.parse(readFn(meta, 'utf8')).version ?? null;
   } catch {
     return null;
   }
@@ -254,8 +258,8 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
   for (const key of Object.keys(PLATFORMS)) {
     for (const skillName of Object.keys(SKILLS)) {
       const dir = targetDir(key, null, skillName, home);
-      const installed = existsSync(join(dir, 'SKILL.md')) ? installedVersion(dir) : null;
-      const runtime = existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE));
+      const installed = existsSync(join(dir, 'SKILL.md')) ? installedVersion(dir, skillName) : null;
+      const runtime = skillName === PRIMARY_SKILL ? existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE)) : true;
       let mark = '-';
       if (installed) {
         mark = installed === current ? `v${installed}` : `v${installed} STALE`;
@@ -284,15 +288,16 @@ function version(packageDir = HERE) {
 // Keeps every skill metadata file in step with package.json. Run by `npm
 // version`. It writes each skill, because a skill left behind ships a stale
 // version that no test would catch.
-function cmdSyncVersion() {
+export function cmdSyncVersion(packageDir = HERE, log = console.log) {
   const today = new Date().toISOString().slice(0, 10);
+  const ver = version(packageDir);
   for (const skillName of Object.keys(SKILLS)) {
-    const { meta: target } = skillSourceFiles(skillName);
+    const { meta: target } = skillSourceFiles(skillName, packageDir);
     const meta = JSON.parse(readFileSync(target, 'utf8'));
-    meta.version = version();
+    meta.version = ver;
     meta.updated = today;
     writeFileSync(target, `${JSON.stringify(meta, null, 2)}\n`);
-    console.log(`${skillName}.metadata.json set to v${meta.version} (${meta.updated})`);
+    log(`${skillName}.metadata.json set to v${meta.version} (${meta.updated})`);
   }
 }
 

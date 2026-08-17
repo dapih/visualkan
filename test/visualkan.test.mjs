@@ -45,7 +45,7 @@ import {
   COMPLEXITIES,
   DEVICES,
   MODES,
-} from '../scripts/visualkan-run.mjs';
+} from '../skills/visualkan/scripts/visualkan-run.mjs';
 
 // --- parseArgs -------------------------------------------------------------
 
@@ -282,11 +282,11 @@ test('targetDir rejects an unknown skill and lists the valid ones', () => {
   assert.throws(() => targetDir('claude', null, 'visualkan-helper'), /Unknown skill "visualkan-helper"/);
 });
 
-test('every registered skill ships both of its source files', () => {
+test('every registered skill ships its source files', () => {
   for (const name of Object.keys(SKILLS)) {
     const { md, meta } = skillSourceFiles(name);
-    assert.ok(md.endsWith(`${name}.md`), `${name} needs skill/${name}.md`);
-    assert.ok(meta.endsWith(`${name}.metadata.json`), `${name} needs skill/${name}.metadata.json`);
+    assert.ok(md.endsWith(join('skills', name, 'SKILL.md')), `${name} needs skills/${name}/SKILL.md`);
+    assert.ok(meta.endsWith(join('skills', name, `${name}.metadata.json`)), `${name} needs skills/${name}/${name}.metadata.json`);
   }
 });
 
@@ -301,11 +301,10 @@ test('the package declares no dependencies of any kind', () => {
 });
 
 test('the npm version hook stages every file that sync-version writes', () => {
-  // The hook named skill/metadata.json after that file was renamed, so
-  // `npm version minor` died with git exit 128 part way through the bump.
+  // The hook stages skills/ so that all updated metadata files are staged.
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   const staged = pkg.scripts.version.match(/git add (\S+)/)?.[1];
-  assert.equal(staged, 'skill/', 'stage the directory, not one file name that can go stale');
+  assert.equal(staged, 'skills/', 'stage the directory, not one file name that can go stale');
 });
 
 test('every skill metadata file carries the package version', () => {
@@ -321,7 +320,7 @@ test('every skill metadata file carries the package version', () => {
 test('the wizard description keeps the guard that stops it matching a plain request', () => {
   // ADR 0005: a description that drifts wide reopens the coin flip between the
   // two skills.
-  const body = readFileSync(new URL('../skill/visualkan-wizard.md', import.meta.url), 'utf8');
+  const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
   assert.match(body, /ONLY when the user names this skill/);
   assert.match(body, /Do NOT use this for a request to visualize/);
 });
@@ -388,7 +387,7 @@ test('controlsReport describes native by capability, not by product name', () =>
 
 test('every style has a template file, and every template file has a style', () => {
   // Adding a style without its template, or the reverse, must fail here.
-  const dir = new URL('../references/', import.meta.url);
+  const dir = new URL('../skills/visualkan/references/', import.meta.url);
   const files = readdirSync(dir).filter((f) => f.startsWith('style-') && f.endsWith('.md'));
   const fromFiles = files.map((f) => f.slice('style-'.length, -'.md'.length)).sort();
   assert.deepEqual(fromFiles, Object.keys(STYLES).sort());
@@ -404,7 +403,7 @@ test('every style declares the sections its prompt must carry', () => {
 test('every required section actually appears in that style template', () => {
   // A requirement absent from the template would reject every honest prompt.
   for (const [name, style] of Object.entries(STYLES)) {
-    const body = readTemplate(name, fileURLToPath(new URL('../scripts/', import.meta.url)));
+    const body = readTemplate(name, fileURLToPath(new URL('../skills/visualkan/scripts/', import.meta.url)));
     for (const header of style.requires) {
       assert.ok(body.includes(header), `${name} template never mentions "${header}"`);
     }
@@ -551,12 +550,18 @@ test('install writes every required file into a temporary home directory', (t) =
   for (const skillName of Object.keys(SKILLS)) {
     const dir = targetDir('claude', null, skillName, tmpHome);
     assert.ok(existsSync(join(dir, 'SKILL.md')), `${skillName}/SKILL.md must exist`);
-    assert.ok(existsSync(join(dir, 'metadata.json')), `${skillName}/metadata.json must exist`);
-    assert.ok(existsSync(join(dir, 'scripts', 'visualkan-run.mjs')), `${skillName} Runtime must exist`);
-    for (const style of Object.keys(STYLES)) {
-      assert.ok(existsSync(join(dir, 'references', `style-${style}.md`)), `${skillName} style-${style}.md must exist`);
-    }
+    assert.ok(existsSync(join(dir, `${skillName}.metadata.json`)), `${skillName}/${skillName}.metadata.json must exist`);
   }
+
+  const vkDir = targetDir('claude', null, 'visualkan', tmpHome);
+  assert.ok(existsSync(join(vkDir, 'scripts', 'visualkan-run.mjs')), 'visualkan Runtime must exist');
+  for (const style of Object.keys(STYLES)) {
+    assert.ok(existsSync(join(vkDir, 'references', `style-${style}.md`)), `style-${style}.md must exist`);
+  }
+
+  const wizDir = targetDir('claude', null, 'visualkan-wizard', tmpHome);
+  assert.ok(!existsSync(join(wizDir, 'scripts')), 'visualkan-wizard does not copy Runtime');
+  assert.ok(!existsSync(join(wizDir, 'references')), 'visualkan-wizard does not copy references');
 
   assert.ok(logs.some((l) => l.includes('Installed visualkan')), 'logs installation of visualkan');
   assert.ok(logs.some((l) => l.includes('Installed visualkan-wizard')), 'logs installation of visualkan-wizard');
