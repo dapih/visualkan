@@ -158,92 +158,99 @@ If this command fails, or reports an older version, install Node.js from [nodejs
 
 Antigravity and Codex users who rely on the native subscription backend still need Node to install the skill, but the CLI is not involved in generation.
 
-## Compatibility
+## Channels and Compatibility
 
-This skill supports any platform that reads markdown skill definitions, including every platform compatible with [Open Agent Standard](https://agentskills.io). See [Prerequisites](#prerequisites) for the full list of compatible platforms.
+Visualkan reaches your platform through four distinct Channels. Choose the installation method that fits your workflow.
 
-Antigravity and Codex CLI use native subscription image generation, with no API key needed. Every other platform uses an API key, or OpenRouter. See [Image Generation Backend](#2-image-generation-backend).
+### Coverage Matrix
+
+Every combination is stated explicitly below:
+
+| Platform | npm (`visualkan install`) | Claude Code Plugin (`/plugin install`) | `npx skills add` | Manual Copy | Global Target Directory |
+|---|---|---|---|---|---|
+| Claude Code | **Supported** | **Supported** | **Supported** | **Supported** | `~/.claude/skills/` |
+| Antigravity | **Supported** | *Unsupported* | **Supported** | **Supported** | `~/.gemini/config/skills/` |
+| Gemini CLI | **Supported** | *Unsupported* | **Supported** | **Supported** | `~/.gemini/skills/` |
+| Codex CLI | **Supported** | *Unsupported* | **Supported** | **Supported** | `~/.codex/skills/` |
+| OpenClaw | **Supported** | *Unsupported* | **Supported** | **Supported** | `~/.openclaw/skills/` |
+| Open Agent Standard | **Supported** | *Unsupported* | *Unsupported* | *Unsupported* | `~/.agents/skills/` |
+
+### Channel Limits
+
+Three architectural boundaries apply across Channels:
+
+1. **Open Agent Standard is unsupported on every Channel except npm.** The Open Agent Standard specification defines the interior of a skill directory but leaves the directory location unstated. Without platform-stated directory text, non-npm channels degrade to an agent-invented search that fails for global installations.
+2. **Codex prompt generation is unobserved.** While the `file:` locator mechanism was verified to produce forward-slash paths from binary inspection, live model generation inside Codex was not directly observed.
+3. **Directory anchoring is a model behaviour.** Resolving paths from the loaded skill directory is a model capability rather than a hard platform guarantee. When a model fails to anchor, failure is loud: Node exits 1 with `MODULE_NOT_FOUND` on the first command rather than silently generating poor images.
 
 ## Installation
 
-Visualkan needs [Node.js](https://nodejs.org) 24 or later, and nothing else.
+### Channel 1: npm package (CLI Installer)
 
-### Open a terminal
-
-Run every command below inside a terminal window.
-
-- **Windows**: Press the Windows key. Type `powershell`. Select **Windows PowerShell**.
-- **macOS**: Press Command+Space. Type `terminal`. Press Return.
-- **Linux**: Open your terminal application from the applications menu, or press Ctrl+Alt+T.
-
-### 1. Install the CLI
+The npm Channel supports all platforms and scopes.
 
 ```bash
+# 1. Install the CLI globally
 npm install -g @dapih/visualkan
+
+# 2. Install both skills into your platform
+visualkan install <platform>
 ```
 
-If this command reports a permission error on macOS or Linux, run it again with `sudo`:
+Replace `<platform>` with `claude`, `antigravity`, `gemini`, `codex`, `openclaw`, or `agents`.
+
+To install for one project only (project scope), pass `--project`:
 
 ```bash
-sudo npm install -g @dapih/visualkan
+visualkan install claude --project /path/to/project
 ```
 
-### 2. Install the skill into your platform
+### Channel 2: Claude Code Plugin Marketplace
+
+For Claude Code users:
 
 ```bash
-visualkan install claude
+/plugin marketplace add dapih/visualkan
+/plugin install visualkan
 ```
 
-Replace `claude` with your platform:
+This installs `visualkan` and `visualkan-wizard` directly into Claude Code.
 
-| Platform | Command | Installs to |
-|---|---|---|
-| Claude Code | `visualkan install claude` | `~/.claude/skills/visualkan/` |
-| Antigravity | `visualkan install antigravity` | `~/.gemini/config/skills/visualkan/` |
-| Gemini CLI | `visualkan install gemini` | `~/.gemini/skills/visualkan/` |
-| Codex CLI | `visualkan install codex` | `~/.codex/skills/visualkan/` |
-| Open Agent Standard | `visualkan install agents` | `~/.agents/skills/visualkan/` |
-| OpenClaw | `visualkan install openclaw` | `~/clawd/skills/visualkan/` |
+### Channel 3: `npx skills add`
 
-Use `visualkan install agents` for Cursor, GitHub Copilot, ChatGPT desktop, OpenCode, Windsurf, Roo Code, and Trae.
-
-One command installs two skills. `visualkan` goes to the directory in the table, and `visualkan-wizard` goes to a sibling directory beside it.
-
-Install also writes a copy of the image generation code into `<skill>/scripts/`, and writes that file's resolved path into each skill. Your assistant runs it by that path, so it never needs to find a `visualkan` command on your PATH. Do not move either directory by hand, because the written path stops matching.
-
-### Project scope
-
-To install into one project instead of your home directory, pass `--project`:
+For platforms with Agent Skills support:
 
 ```bash
-visualkan install claude --project /path/to/your-project
+npx skills add dapih/visualkan
 ```
 
-OpenClaw supports global scope only.
+### Channel 4: Manual Copy
 
-### Other commands
+Copy the `skills/visualkan/` and `skills/visualkan-wizard/` directories directly from the repository into your platform's skills directory:
 
-```bash
-visualkan status               # show where both skills are installed
-visualkan controls             # print every control and its legal values
-visualkan uninstall claude     # remove both skills
-visualkan help                 # full usage
-```
+- **Claude Code**: `~/.claude/skills/`
+- **Antigravity**: `~/.gemini/config/skills/`
+- **Gemini CLI**: `~/.gemini/skills/`
+- **Codex CLI**: `~/.codex/skills/`
+- **OpenClaw**: `~/.openclaw/skills/`
 
-`visualkan controls` prints the catalog from the code, so it never goes stale. It also reports which backends this machine can reach, without printing a key.
+### Important: Upgrading from v0.6.0
 
-`visualkan status` marks a skill `STALE` when a newer version is installed but the skill folder still holds the old one. It marks a skill `no-runtime` when the folder predates version 0.5.0 and has no `scripts/` copy. Both are fixed the same way, by upgrading.
-
-### Upgrading
-
-Both commands are required. The first updates the package. The second rewrites the installed skills and their bundled `scripts/` copy.
+Visualkan 0.7.0 reorganizes the skill repository tree to `skills/<name>/SKILL.md`. Existing 0.6.0 installs do not upgrade in place. To upgrade, reinstall:
 
 ```bash
 npm install -g @dapih/visualkan@latest
-visualkan install claude
+visualkan install <platform>
 ```
 
-Run the second command for each platform you use. Skipping it leaves the old skill in place, and `visualkan status` will say so.
+### Other Commands
+
+```bash
+visualkan status               # scan and report all installed copies
+visualkan controls             # print the control catalog and detected backends
+visualkan uninstall <platform> # remove installed skills and report surviving copies
+visualkan help                 # usage instructions
+```
 
 ## Usage
 

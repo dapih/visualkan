@@ -13,7 +13,9 @@
 
 ### Unreleased
 
+- **Clean break: reinstall required for 0.6.0 and earlier.** The skill repository reorganized to `skills/<name>/SKILL.md` (with subtrees for `scripts/` and `references/`). Existing installs do not upgrade in place. Users must reinstall (`npm install -g @dapih/visualkan@latest`, then `visualkan install <platform>`).
 - **The `template` command is deleted (breaking change / public interface change).** The agent reads `references/style-<name>.md` directly from the skill directory on every route, so a `native` user does not need Node installed to fetch a Style Template. The gate inside `generate` continues to reject prompts that miss required sections. (ADR 0009)
+- **The OpenClaw Channel never worked in versions prior to 0.7.0.** No OpenClaw version has ever read `~/clawd`; that path was Visualkan's own artifact. The platform registry now correctly targets `.openclaw/skills`. Existing `~/clawd` directories are reported as residue by `status` and `uninstall` and left for the user to delete.
 
 ### v0.6.0 — Style templates move out, and the prompt is checked
 
