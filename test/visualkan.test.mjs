@@ -349,6 +349,34 @@ test('sync-version fails loudly when the plugin manifest is missing', (t) => {
   assert.throws(() => cmdSyncVersion(dir, () => {}), /plugin manifest is missing/);
 });
 
+test('skills/ holds exactly the registered skills, and they are siblings', () => {
+  // Acceptance criterion on #18. The tree is skills/<name>/, one directory per
+  // entry in SKILLS, with no nesting of one skill inside another.
+  const skillsDir = fileURLToPath(new URL('../skills/', import.meta.url));
+  const entries = readdirSync(skillsDir, { withFileTypes: true });
+  const dirs = entries.filter((e) => e.isDirectory()).map((e) => e.name).sort();
+  assert.deepEqual(dirs, Object.keys(SKILLS).sort(), 'skills/ holds one directory per registered skill');
+  assert.ok(!entries.some((e) => e.isFile()), 'skills/ holds no loose files');
+  for (const name of dirs) {
+    const nested = readdirSync(join(skillsDir, name), { withFileTypes: true })
+      .filter((e) => e.isDirectory())
+      .map((e) => e.name);
+    for (const other of dirs) {
+      assert.ok(!nested.includes(other), `${other} must be a sibling of ${name}, not inside it`);
+    }
+  }
+});
+
+test('package.json ships skills/ and none of the directories it replaced', () => {
+  // Acceptance criterion on #18. The tree moved to skills/<name>/, so the old
+  // top-level names must not ride along and install a second, stale copy.
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert.ok(pkg.files.includes('skills/'), 'files must list skills/');
+  for (const gone of ['scripts/', 'references/', 'skill/', 'scripts', 'references', 'skill']) {
+    assert.ok(!pkg.files.includes(gone), `files must not list ${gone}`);
+  }
+});
+
 test('the npm version hook stages every file that sync-version writes', () => {
   // The hook stages skills/ and .claude-plugin/ so all updated files are staged.
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
