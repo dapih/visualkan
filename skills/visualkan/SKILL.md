@@ -196,7 +196,7 @@ If the user changes a control, apply the change and print the block again. If th
 
 ### Step 5: Construct the image generation prompt
 
-Fetch the Style Template first, using the command in the next section, then build the prompt from it. The prompt MUST be comprehensive — typically 400-800 words. Vague prompts produce generic results. Every visual element must be explicitly described.
+Read the Style Template first, using the instructions in the next section, then build the prompt from it. The prompt MUST be comprehensive — typically 400-800 words. Vague prompts produce generic results. Every visual element must be explicitly described.
 
 **CRITICAL PROMPT ENGINEERING RULES:**
 - Describe the EXACT layout with spatial positions (top-left, center, bottom-right, etc.)
@@ -212,15 +212,15 @@ Fetch the Style Template first, using the command in the next section, then buil
 
 ## Style Templates
 
-The seven Style Templates do not live in this file. Each one is a separate reference file, and the Runtime serves it.
+The seven Style Templates do not live in this file. Each one is a separate reference file inside this skill's `references/` directory.
 
-Run this command with the Style you resolved in Step 1, and build the Image Prompt from what it prints:
+Read `references/style-<style>.md` from this skill's own directory, using the Style you resolved in Step 1. Resolve that relative path against the directory this skill was loaded from, not against the current working directory, and write it with forward slashes:
 
-```bash
-node "<path from Step 1>" template --style <style>
+```
+<this skill's own directory>/references/style-<style>.md
 ```
 
-Do not write a prompt from memory, and do not invent a template. `generate` rejects a prompt that is missing the sections its Style requires, so a skipped template fails the run rather than producing a weaker image.
+Build the Image Prompt from the template you read. Do not write a prompt from memory, and do not invent a template. `generate` rejects a prompt that is missing the sections its Style requires, so a skipped template fails the run rather than producing a weaker image.
 
 The template names every section the prompt must contain, and branches on `--draw-level`. Keep every branch you are given.
 

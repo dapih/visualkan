@@ -2,6 +2,7 @@
 
 | Version | Date | Description |
 |---------|------|-------------|
+| Unreleased | — | The agent reads Style Templates from files, and `template` command is deleted |
 | 0.6.0 | 2026-08-15 | Style templates move to reference files, and `generate` gates the prompt |
 | 0.5.0 | 2026-08-15 | The Runtime installs beside the skill, so an agent never needs PATH |
 | 0.4.1 | 2026-08-14 | The npm package moved to the `@dapih/visualkan` scope |
@@ -9,6 +10,10 @@
 | 0.3.0 | 2026-08-14 | Fixes found by the first live generation run, and draw-level for infographic |
 | 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### Unreleased
+
+- **The `template` command is deleted (breaking change / public interface change).** The agent reads `references/style-<name>.md` directly from the skill directory on every route, so a `native` user does not need Node installed to fetch a Style Template. The gate inside `generate` continues to reject prompts that miss required sections. (ADR 0009)
 
 ### v0.6.0 — Style templates move out, and the prompt is checked
 

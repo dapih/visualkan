@@ -303,7 +303,6 @@ const USAGE = `visualkan v__VERSION__
   visualkan uninstall <platform> [--project DIR]
   visualkan status
   visualkan controls
-  visualkan template --style NAME
   visualkan generate --prompt-file PATH [options]
 
 Platforms: ${Object.keys(PLATFORMS).join(', ')}
@@ -335,9 +334,6 @@ async function main(argv) {
     case 'status': return cmdStatus(flags, rest);
     // Forwarded to the Runtime, which is the one place these live.
     case 'controls': return void console.log(controlsReport(process.env));
-    case 'template': return void console.log(readTemplate(
-      typeof flags.style === 'string' ? flags.style : 'whiteboard'
-    ));
     case 'generate': return cmdGenerate(flags);
     case 'sync-version': return cmdSyncVersion();
     case 'version': return void console.log(version());

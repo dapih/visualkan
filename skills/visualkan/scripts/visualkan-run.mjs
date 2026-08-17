@@ -502,7 +502,6 @@ export async function cmdGenerate(flags) {
 export const RUNTIME_USAGE = `visualkan runtime
 
   node <this file> controls
-  node <this file> template --style NAME
   node <this file> generate --prompt-file PATH [options]
 
 generate options:
@@ -521,9 +520,6 @@ export async function runMain(argv) {
   const { flags, positional } = parseArgs(argv);
   switch (positional[0]) {
     case 'controls': return void console.log(controlsReport(process.env));
-    case 'template': return void console.log(readTemplate(
-      typeof flags.style === 'string' ? flags.style : 'whiteboard'
-    ));
     case 'generate': return cmdGenerate(flags);
     case undefined:
     case 'help': return void console.log(RUNTIME_USAGE);

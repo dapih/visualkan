@@ -45,6 +45,7 @@ import {
   COMPLEXITIES,
   DEVICES,
   MODES,
+  RUNTIME_USAGE,
 } from '../skills/visualkan/scripts/visualkan-run.mjs';
 
 // --- parseArgs -------------------------------------------------------------
@@ -446,6 +447,19 @@ test('each style is gated against its own sections, not a shared list', () => {
   const mockupish = STYLES.mockup.requires.map((h) => `${h}: x.`).join('\n') + ' ' + 'w '.repeat(400);
   assert.deepEqual(promptGaps(mockupish, 'mockup'), []);
   assert.ok(promptGaps(mockupish, 'whiteboard').length, 'a mockup prompt must not satisfy whiteboard');
+});
+
+test('neither USAGE nor RUNTIME_USAGE names the template command', () => {
+  const installerSrc = readFileSync(new URL('../visualkan.mjs', import.meta.url), 'utf8');
+  assert.ok(!RUNTIME_USAGE.includes('template --style'), 'RUNTIME_USAGE must not name template');
+  assert.ok(!installerSrc.includes('visualkan template --style'), 'Installer USAGE must not name template');
+});
+
+test('skills/visualkan/SKILL.md instructs reading style templates from reference files with forward slashes', () => {
+  const body = readFileSync(new URL('../skills/visualkan/SKILL.md', import.meta.url), 'utf8');
+  assert.match(body, /Read `references\/style-<style>\.md` from this skill's own directory/);
+  assert.match(body, /Resolve that relative path against the directory this skill was loaded from/);
+  assert.match(body, /write it with forward slashes/);
 });
 
 // --- installed paths (ADR 0006) --------------------------------------------
