@@ -199,11 +199,11 @@ export function availableBackends(env) {
 
 // Builds the Control catalog that `visualkan controls` prints. The Wizard reads
 // this output instead of carrying its own copy of the value lists.
-export function controlsReport(env) {
+export function controlsReport(env, ver = null) {
   const lines = [];
   const pad = (text, width) => String(text).padEnd(width);
 
-  lines.push('Visualkan Controls', '');
+  lines.push(ver ? `Visualkan Controls v${ver}` : 'Visualkan Controls', '');
 
   lines.push('--style          Default: whiteboard');
   for (const [name, style] of Object.entries(STYLES)) {

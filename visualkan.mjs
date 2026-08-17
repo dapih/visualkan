@@ -292,12 +292,20 @@ function version(packageDir = HERE) {
   return JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')).version;
 }
 
-// Keeps every skill metadata file in step with package.json. Run by `npm
-// version`. It writes each skill, because a skill left behind ships a stale
-// version that no test would catch.
+// Keeps every skill metadata file, plugin.json, and controls.md in step with
+// package.json. Run by `npm version`.
 export function cmdSyncVersion(packageDir = HERE, log = console.log) {
   const today = new Date().toISOString().slice(0, 10);
   const ver = version(packageDir);
+
+  const pluginPath = join(packageDir, '.claude-plugin', 'plugin.json');
+  if (existsSync(pluginPath)) {
+    const plugin = JSON.parse(readFileSync(pluginPath, 'utf8'));
+    plugin.version = ver;
+    writeFileSync(pluginPath, `${JSON.stringify(plugin, null, 2)}\n`);
+    log(`plugin.json set to v${plugin.version}`);
+  }
+
   for (const skillName of Object.keys(SKILLS)) {
     const { meta: target } = skillSourceFiles(skillName, packageDir);
     const meta = JSON.parse(readFileSync(target, 'utf8'));
@@ -312,8 +320,8 @@ export function cmdSyncVersion(packageDir = HERE, log = console.log) {
     mkdirSync(controlsDir, { recursive: true });
   }
   const controlsTarget = join(controlsDir, 'controls.md');
-  writeFileSync(controlsTarget, `${controlsReport({})}\n`);
-  log(`controls.md generated for visualkan-wizard`);
+  writeFileSync(controlsTarget, `${controlsReport({}, ver)}\n`);
+  log(`controls.md generated for visualkan-wizard (v${ver})`);
 }
 
 // --- Entry point -----------------------------------------------------------

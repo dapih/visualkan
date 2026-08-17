@@ -1,0 +1,14 @@
+{
+  "name": "visualkan",
+  "description": "Turns content into visual explanations with seven distinct visual styles",
+  "owner": {
+    "name": "dapih"
+  },
+  "plugins": [
+    {
+      "name": "visualkan",
+      "source": "./",
+      "description": "Turns content into visual explanations with seven distinct visual styles"
+    }
+  ]
+}

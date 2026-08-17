@@ -1,4 +1,4 @@
-Visualkan Controls
+Visualkan Controls v0.6.0
 
 --style          Default: whiteboard
   whiteboard          1536x1024  Hand-drawn teaching board. Markers, doodles, arrows, one color per Section.

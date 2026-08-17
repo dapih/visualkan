@@ -303,10 +303,11 @@ test('the package declares no dependencies of any kind', () => {
 });
 
 test('the npm version hook stages every file that sync-version writes', () => {
-  // The hook stages skills/ so that all updated metadata files are staged.
+  // The hook stages skills/ and .claude-plugin/ so all updated files are staged.
   const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  const staged = pkg.scripts.version.match(/git add (\S+)/)?.[1];
-  assert.equal(staged, 'skills/', 'stage the directory, not one file name that can go stale');
+  const staged = pkg.scripts.version.match(/git add (.+)/)?.[1] ?? '';
+  assert.ok(staged.includes('skills/'), 'stage skills/');
+  assert.ok(staged.includes('.claude-plugin/'), 'stage .claude-plugin/');
 });
 
 test('every skill metadata file carries the package version', () => {
@@ -319,9 +320,28 @@ test('every skill metadata file carries the package version', () => {
   }
 });
 
-test('the generated visualkan-wizard controls.md matches controlsReport', () => {
+test('plugin.json carries the package version and declares no skills field', () => {
+  const expected = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
+  const plugin = JSON.parse(readFileSync(new URL('../.claude-plugin/plugin.json', import.meta.url), 'utf8'));
+  assert.equal(plugin.version, expected, 'plugin.json is out of step with package.json');
+  assert.equal(plugin.name, 'visualkan');
+  assert.equal(plugin.skills, undefined, 'plugin.json must not declare a skills field');
+});
+
+test('marketplace.json declares the three required fields', () => {
+  const marketplace = JSON.parse(readFileSync(new URL('../.claude-plugin/marketplace.json', import.meta.url), 'utf8'));
+  assert.equal(typeof marketplace.name, 'string', 'name is required');
+  assert.equal(typeof marketplace.owner?.name, 'string', 'owner.name is required');
+  assert.ok(Array.isArray(marketplace.plugins) && marketplace.plugins.length > 0, 'plugins array is required');
+  assert.equal(marketplace.plugins[0].name, 'visualkan');
+  assert.equal(marketplace.plugins[0].source, './');
+});
+
+test('the generated visualkan-wizard controls.md matches controlsReport and carries version', () => {
+  const expected = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
   const controlsMd = readFileSync(new URL('../skills/visualkan-wizard/references/controls.md', import.meta.url), 'utf8');
-  assert.equal(controlsMd.trim(), controlsReport({}).trim());
+  assert.equal(controlsMd.trim(), controlsReport({}, expected).trim());
+  assert.match(controlsMd, new RegExp(`Visualkan Controls v${expected}`));
 });
 
 test('the wizard frontmatter carries disable-model-invocation: true', () => {

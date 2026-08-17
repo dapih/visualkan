@@ -49,6 +49,6 @@
   "scripts": {
     "test": "node --test",
     "preversion": "npm test",
-    "version": "node visualkan.mjs sync-version && git add skills/"
+    "version": "node visualkan.mjs sync-version && git add skills/ .claude-plugin/"
   }
 }

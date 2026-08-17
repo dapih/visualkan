@@ -28,5 +28,5 @@ Run what you change. Report what you did not run, and why.
 - Each style declares `requires` in the `STYLES` object, listing the sections its prompt must carry. `generate` rejects a prompt that misses them. Renaming a section in a template means updating `requires` in the same commit, or every honest prompt starts failing.
 - The list of legal control values lives in `skills/visualkan/scripts/visualkan-run.mjs` and prints through `visualkan controls`. The code remains the single source; a derived file such as `skills/visualkan-wizard/references/controls.md` is permitted only where a test asserts that it matches the code constants.
 - Each skill ships as `skills/<name>/SKILL.md`, a `<name>.metadata.json` sidecar, and a subtree. The `SKILLS` registry in `visualkan.mjs` drives install, uninstall, status, and sync-version.
-- `skills/<name>/<name>.metadata.json` carries a generated version. `npm version` writes every one through `visualkan sync-version`.
+- `npm version` runs `visualkan sync-version` to write four outputs from `package.json`: `.claude-plugin/plugin.json`, `skills/visualkan/visualkan.metadata.json`, `skills/visualkan-wizard/visualkan-wizard.metadata.json`, and the version line in `skills/visualkan-wizard/references/controls.md`.
 - Commit messages follow conventional commits, and the body carries the reasoning for the change.
