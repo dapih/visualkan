@@ -85,16 +85,16 @@ export function toPosix(path) {
   return path.replaceAll('\\', '/');
 }
 
-export function skillSourceFiles(skillName) {
-  const md = join(HERE, 'skill', `${skillName}.md`);
-  const meta = join(HERE, 'skill', `${skillName}.metadata.json`);
+export function skillSourceFiles(skillName, packageDir = HERE) {
+  const md = join(packageDir, 'skill', `${skillName}.md`);
+  const meta = join(packageDir, 'skill', `${skillName}.metadata.json`);
   if (!existsSync(md) || !existsSync(meta)) {
-    throw new UserError(`Files for "${skillName}" are missing from the package at ${join(HERE, 'skill')}.`);
+    throw new UserError(`Files for "${skillName}" are missing from the package at ${join(packageDir, 'skill')}.`);
   }
   return { md, meta };
 }
 
-export function targetDir(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
+export function targetDir(platformKey, projectRoot, skillName = PRIMARY_SKILL, home = homedir()) {
   const platform = PLATFORMS[platformKey];
   if (!platform) {
     throw new UserError(
@@ -110,7 +110,7 @@ export function targetDir(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
     }
     return join(resolve(projectRoot), ...platform.project, skillName);
   }
-  return join(homedir(), ...platform.global, skillName);
+  return join(home, ...platform.global, skillName);
 }
 
 // The path written into an installed skill body, decided once at install time.
@@ -120,7 +120,7 @@ export function targetDir(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
 // path relative to the project root, so a committed skill folder still works
 // for a teammate whose home directory differs. One literal per install, chosen
 // from the --project flag. See ADR 0006.
-export function installedPath(platformKey, projectRoot, skillName, ...parts) {
+export function installedPath(platformKey, projectRoot, skillName, parts = [], home = homedir()) {
   const platform = PLATFORMS[platformKey];
   if (!platform) {
     throw new UserError(
@@ -130,30 +130,31 @@ export function installedPath(platformKey, projectRoot, skillName, ...parts) {
   if (!SKILLS[skillName]) {
     throw new UserError(`Unknown skill "${skillName}". Choose one of: ${Object.keys(SKILLS).join(', ')}.`);
   }
+  const partList = Array.isArray(parts) ? parts : [parts];
   if (projectRoot) {
     if (!platform.project) {
       throw new UserError(`${platform.label} supports global scope only, so --project does not apply.`);
     }
-    return toPosix(join(...platform.project, skillName, ...parts));
+    return toPosix(join(...platform.project, skillName, ...partList));
   }
-  return toPosix(join(homedir(), ...platform.global, skillName, ...parts));
+  return toPosix(join(home, ...platform.global, skillName, ...partList));
 }
 
-export function runtimePath(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
-  return installedPath(platformKey, projectRoot, skillName, RUNTIME_DIR, RUNTIME_FILE);
+export function runtimePath(platformKey, projectRoot, skillName = PRIMARY_SKILL, home = homedir()) {
+  return installedPath(platformKey, projectRoot, skillName, [RUNTIME_DIR, RUNTIME_FILE], home);
 }
 
-export function skillDocPath(platformKey, projectRoot, skillName = PRIMARY_SKILL) {
-  return installedPath(platformKey, projectRoot, skillName, 'SKILL.md');
+export function skillDocPath(platformKey, projectRoot, skillName = PRIMARY_SKILL, home = homedir()) {
+  return installedPath(platformKey, projectRoot, skillName, ['SKILL.md'], home);
 }
 
 // Every placeholder a skill body may carry, and what install writes for it.
 // A placeholder with no rule here is a bug the test suite catches, because a
 // leftover {{...}} reaches the agent as literal text.
-export function substitutions(platformKey, projectRoot) {
+export function substitutions(platformKey, projectRoot, home = homedir()) {
   return {
-    RUNTIME_PATH: runtimePath(platformKey, projectRoot, PRIMARY_SKILL),
-    VISUALKAN_SKILL_PATH: skillDocPath(platformKey, projectRoot, PRIMARY_SKILL),
+    RUNTIME_PATH: runtimePath(platformKey, projectRoot, PRIMARY_SKILL, home),
+    VISUALKAN_SKILL_PATH: skillDocPath(platformKey, projectRoot, PRIMARY_SKILL, home),
   };
 }
 
@@ -168,27 +169,31 @@ export function applySubstitutions(body, values) {
 
 // Both skills install together. An optional install would mean that the user
 // has to know that the Wizard exists, which is the problem the Wizard solves.
-function cmdInstall(flags, positional) {
+export function cmdInstall(flags = {}, positional = [], options = {}) {
   const platformKey = positional[0];
   if (!platformKey) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
-  const projectRoot = typeof flags.project === 'string' ? flags.project : null;
-  const values = substitutions(platformKey, projectRoot);
-  const runtimeSource = join(HERE, RUNTIME_DIR, RUNTIME_FILE);
+  const home = options.home ?? homedir();
+  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? null);
+  const packageDir = options.packageDir ?? HERE;
+  const log = options.log ?? console.log;
+
+  const values = substitutions(platformKey, projectRoot, home);
+  const runtimeSource = join(packageDir, RUNTIME_DIR, RUNTIME_FILE);
   if (!existsSync(runtimeSource)) {
     throw new UserError(`The Runtime is missing from the package at ${runtimeSource}.`);
   }
   for (const style of Object.keys(STYLES)) {
-    const source = join(HERE, REFERENCE_DIR, `style-${style}.md`);
+    const source = join(packageDir, REFERENCE_DIR, `style-${style}.md`);
     if (!existsSync(source)) {
       throw new UserError(`The Style Template for "${style}" is missing from the package at ${source}.`);
     }
   }
 
   for (const skillName of Object.keys(SKILLS)) {
-    const { md, meta } = skillSourceFiles(skillName);
-    const dir = targetDir(platformKey, projectRoot, skillName);
+    const { md, meta } = skillSourceFiles(skillName, packageDir);
+    const dir = targetDir(platformKey, projectRoot, skillName, home);
     mkdirSync(join(dir, RUNTIME_DIR), { recursive: true });
     mkdirSync(join(dir, REFERENCE_DIR), { recursive: true });
 
@@ -198,27 +203,30 @@ function cmdInstall(flags, positional) {
     copyFileSync(runtimeSource, join(dir, RUNTIME_DIR, RUNTIME_FILE));
     for (const style of Object.keys(STYLES)) {
       const file = `style-${style}.md`;
-      copyFileSync(join(HERE, REFERENCE_DIR, file), join(dir, REFERENCE_DIR, file));
+      copyFileSync(join(packageDir, REFERENCE_DIR, file), join(dir, REFERENCE_DIR, file));
     }
-    console.log(`Installed ${skillName} v${version()} to ${join(dir, 'SKILL.md')}`);
+    log(`Installed ${skillName} v${version(packageDir)} to ${join(dir, 'SKILL.md')}`);
   }
-  console.log(`Runtime path written into both skills: ${values.RUNTIME_PATH}`);
+  log(`Runtime path written into both skills: ${values.RUNTIME_PATH}`);
 }
 
-function cmdUninstall(flags, positional) {
+export function cmdUninstall(flags = {}, positional = [], options = {}) {
   const platformKey = positional[0];
   if (!platformKey) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
-  const projectRoot = typeof flags.project === 'string' ? flags.project : null;
+  const home = options.home ?? homedir();
+  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? null);
+  const log = options.log ?? console.log;
+
   for (const skillName of Object.keys(SKILLS)) {
-    const dir = targetDir(platformKey, projectRoot, skillName);
+    const dir = targetDir(platformKey, projectRoot, skillName, home);
     if (!existsSync(dir)) {
-      console.log(`${skillName} is not installed at ${dir}`);
+      log(`${skillName} is not installed at ${dir}`);
       continue;
     }
     rmSync(dir, { recursive: true, force: true });
-    console.log(`Uninstalled ${skillName} from ${dir}`);
+    log(`Uninstalled ${skillName} from ${dir}`);
   }
 }
 
@@ -234,13 +242,18 @@ export function installedVersion(dir, read = readFileSync, exists = existsSync) 
   }
 }
 
-function cmdStatus() {
-  const current = version();
-  console.log(`${PRIMARY_SKILL} v${current}`);
+export function cmdStatus(flags = {}, positional = [], options = {}) {
+  const opts = (flags && (flags.home || flags.log || flags.packageDir)) ? flags : options;
+  const home = opts.home ?? homedir();
+  const packageDir = opts.packageDir ?? HERE;
+  const log = opts.log ?? console.log;
+
+  const current = version(packageDir);
+  log(`${PRIMARY_SKILL} v${current}`);
   let skew = false;
   for (const key of Object.keys(PLATFORMS)) {
     for (const skillName of Object.keys(SKILLS)) {
-      const dir = targetDir(key, null, skillName);
+      const dir = targetDir(key, null, skillName, home);
       const installed = existsSync(join(dir, 'SKILL.md')) ? installedVersion(dir) : null;
       const runtime = existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE));
       let mark = '-';
@@ -252,20 +265,20 @@ function cmdStatus() {
           skew = true;
         }
       }
-      console.log(`  ${key.padEnd(12)} ${skillName.padEnd(17)} ${mark.padEnd(16)} ${dir}`);
+      log(`  ${key.padEnd(12)} ${skillName.padEnd(17)} ${mark.padEnd(16)} ${dir}`);
     }
   }
   if (skew) {
-    console.log('');
-    console.log(`A skill above was installed by an older version, or is missing its Runtime.`);
-    console.log(`Re-run: visualkan install <platform>`);
+    log('');
+    log(`A skill above was installed by an older version, or is missing its Runtime.`);
+    log(`Re-run: visualkan install <platform>`);
   }
 }
 
 // --- Version ---------------------------------------------------------------
 
-function version() {
-  return JSON.parse(readFileSync(join(HERE, 'package.json'), 'utf8')).version;
+function version(packageDir = HERE) {
+  return JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8')).version;
 }
 
 // Keeps every skill metadata file in step with package.json. Run by `npm
@@ -320,7 +333,7 @@ async function main(argv) {
   switch (command) {
     case 'install': return cmdInstall(flags, rest);
     case 'uninstall': return cmdUninstall(flags, rest);
-    case 'status': return cmdStatus();
+    case 'status': return cmdStatus(flags, rest);
     // Forwarded to the Runtime, which is the one place these live.
     case 'controls': return void console.log(controlsReport(process.env));
     case 'template': return void console.log(readTemplate(

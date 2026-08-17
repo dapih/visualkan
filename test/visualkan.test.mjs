@@ -1,12 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, readdirSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { readFileSync, readdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // The Installer owns install, uninstall, status, and sync-version.
 import {
+  cmdInstall,
+  cmdStatus,
+  cmdUninstall,
   targetDir,
   skillSourceFiles,
   runtimePath,
@@ -21,6 +24,7 @@ import {
 
 // The Runtime owns the Controls and image generation. See ADR 0006.
 import {
+  UserError,
   parseArgs,
   detectBackend,
   validateModel,
@@ -533,4 +537,109 @@ test('installedVersion returns null rather than throwing on a missing or broken 
   assert.equal(installedVersion('/anywhere', () => '{}', () => false), null);
   assert.equal(installedVersion('/anywhere', () => 'not json', () => true), null);
   assert.equal(installedVersion('/anywhere', () => '{}', () => true), null);
+});
+
+// --- command layer (ticket #17) --------------------------------------------
+
+test('install writes every required file into a temporary home directory', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-home-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const logs = [];
+  cmdInstall({}, ['claude'], { home: tmpHome, log: (msg) => logs.push(msg) });
+
+  for (const skillName of Object.keys(SKILLS)) {
+    const dir = targetDir('claude', null, skillName, tmpHome);
+    assert.ok(existsSync(join(dir, 'SKILL.md')), `${skillName}/SKILL.md must exist`);
+    assert.ok(existsSync(join(dir, 'metadata.json')), `${skillName}/metadata.json must exist`);
+    assert.ok(existsSync(join(dir, 'scripts', 'visualkan-run.mjs')), `${skillName} Runtime must exist`);
+    for (const style of Object.keys(STYLES)) {
+      assert.ok(existsSync(join(dir, 'references', `style-${style}.md`)), `${skillName} style-${style}.md must exist`);
+    }
+  }
+
+  assert.ok(logs.some((l) => l.includes('Installed visualkan')), 'logs installation of visualkan');
+  assert.ok(logs.some((l) => l.includes('Installed visualkan-wizard')), 'logs installation of visualkan-wizard');
+  assert.ok(logs.some((l) => l.includes('Runtime path written into both skills:')), 'logs written runtime path');
+});
+
+test('a home directory containing a space survives install', (t) => {
+  const baseTmp = mkdtempSync(join(tmpdir(), 'vk-test-space-'));
+  const spaceHome = join(baseTmp, 'User With Spaces');
+  t.after(() => rmSync(baseTmp, { recursive: true, force: true }));
+
+  cmdInstall({}, ['claude'], { home: spaceHome, log: () => {} });
+
+  const skillDir = targetDir('claude', null, 'visualkan', spaceHome);
+  assert.ok(existsSync(join(skillDir, 'SKILL.md')));
+
+  const body = readFileSync(join(skillDir, 'SKILL.md'), 'utf8');
+  assert.ok(body.includes('User With Spaces'), 'written path must preserve space in home directory');
+  assert.ok(!body.includes('\\'), 'written path must use forward slashes');
+});
+
+test('--project writes into the project root', (t) => {
+  const tmpProj = mkdtempSync(join(tmpdir(), 'vk-test-proj-'));
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-home-'));
+  t.after(() => {
+    rmSync(tmpProj, { recursive: true, force: true });
+    rmSync(tmpHome, { recursive: true, force: true });
+  });
+
+  cmdInstall({ project: tmpProj }, ['claude'], { home: tmpHome, log: () => {} });
+
+  const skillDir = targetDir('claude', tmpProj, 'visualkan', tmpHome);
+  assert.ok(existsSync(join(skillDir, 'SKILL.md')), 'writes to project root');
+
+  const body = readFileSync(join(skillDir, 'SKILL.md'), 'utf8');
+  assert.ok(body.includes('.claude/skills/visualkan/scripts/visualkan-run.mjs'), 'path is project-relative');
+  assert.ok(!body.includes(toPosix(tmpProj)), 'path must not embed the absolute project root');
+  assert.ok(!body.includes(toPosix(tmpHome)), 'path must not embed the home directory');
+});
+
+test('status reports a copy that install wrote, with its version', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-status-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  const logs = [];
+  cmdInstall({}, ['claude'], { home: tmpHome, log: () => {} });
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+
+  const output = logs.join('\n');
+  assert.ok(output.includes(`claude       visualkan         v${pkg.version}`), `status must report claude visualkan v${pkg.version}`);
+  assert.ok(output.includes(`claude       visualkan-wizard  v${pkg.version}`), `status must report claude visualkan-wizard v${pkg.version}`);
+});
+
+test('uninstall deletes the directory that install wrote', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-uninst-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  cmdInstall({}, ['claude'], { home: tmpHome, log: () => {} });
+  const dir1 = targetDir('claude', null, 'visualkan', tmpHome);
+  const dir2 = targetDir('claude', null, 'visualkan-wizard', tmpHome);
+  assert.ok(existsSync(dir1));
+  assert.ok(existsSync(dir2));
+
+  const logs = [];
+  cmdUninstall({}, ['claude'], { home: tmpHome, log: (msg) => logs.push(msg) });
+
+  assert.ok(!existsSync(dir1), 'visualkan directory must be deleted');
+  assert.ok(!existsSync(dir2), 'visualkan-wizard directory must be deleted');
+  assert.ok(logs.some((l) => l.includes('Uninstalled visualkan')), 'logs uninstall of visualkan');
+  assert.ok(logs.some((l) => l.includes('Uninstalled visualkan-wizard')), 'logs uninstall of visualkan-wizard');
+});
+
+test('install raises a UserError when the Runtime is missing from the package', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-missing-rt-home-'));
+  const emptyPkgDir = mkdtempSync(join(tmpdir(), 'vk-test-missing-rt-pkg-'));
+  t.after(() => {
+    rmSync(tmpHome, { recursive: true, force: true });
+    rmSync(emptyPkgDir, { recursive: true, force: true });
+  });
+
+  assert.throws(
+    () => cmdInstall({}, ['claude'], { home: tmpHome, packageDir: emptyPkgDir, log: () => {} }),
+    (err) => err instanceof UserError && /The Runtime is missing from the package/.test(err.message)
+  );
 });
