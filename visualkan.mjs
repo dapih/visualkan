@@ -224,10 +224,11 @@ export function cmdUninstall(flags = {}, positional = [], options = {}) {
   if (!platformKey) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
-  const home = options.home ?? homedir();
-  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? null);
-  const log = options.log ?? console.log;
+  const home = options.home ?? flags.home ?? homedir();
+  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? flags.project ?? null);
+  const log = options.log ?? flags.log ?? console.log;
 
+  // 1. Delete target directory
   for (const skillName of Object.keys(SKILLS)) {
     const dir = targetDir(platformKey, projectRoot, skillName, home);
     if (!existsSync(dir)) {
@@ -236,6 +237,69 @@ export function cmdUninstall(flags = {}, positional = [], options = {}) {
     }
     rmSync(dir, { recursive: true, force: true });
     log(`Uninstalled ${skillName} from ${dir}`);
+  }
+
+  // 2. Scan for other copies that survived
+  const otherCopies = [];
+
+  // Global platform roots
+  for (const [key, platform] of Object.entries(PLATFORMS)) {
+    for (const skillName of Object.keys(SKILLS)) {
+      const dir = targetDir(key, null, skillName, home);
+      if (existsSync(join(dir, 'SKILL.md'))) {
+        otherCopies.push({
+          platform: platform.label,
+          skillName,
+          dir,
+          owner: `visualkan uninstall ${key}`,
+        });
+      }
+    }
+  }
+
+  // Project platform roots if --project was passed
+  if (projectRoot) {
+    for (const [key, platform] of Object.entries(PLATFORMS)) {
+      if (!platform.project) continue;
+      for (const skillName of Object.keys(SKILLS)) {
+        const dir = targetDir(key, projectRoot, skillName, home);
+        if (existsSync(join(dir, 'SKILL.md'))) {
+          otherCopies.push({
+            platform: `${platform.label} (project)`,
+            skillName,
+            dir,
+            owner: `visualkan uninstall ${key} --project`,
+          });
+        }
+      }
+    }
+  }
+
+  // Claude Code plugin cache
+  const pluginCopies = findPluginCacheCopies(home);
+  for (const copy of pluginCopies) {
+    otherCopies.push({
+      platform: copy.platform,
+      skillName: copy.skillName,
+      dir: copy.dir,
+      owner: 'claude plugin uninstall visualkan',
+    });
+  }
+
+  // 3. Report other copies
+  if (otherCopies.length > 0) {
+    log('');
+    log('Other copies found (not deleted):');
+    for (const copy of otherCopies) {
+      log(`  ${copy.platform.padEnd(24)} ${copy.skillName.padEnd(18)} ${copy.dir}  (to remove: ${copy.owner})`);
+    }
+  }
+
+  // 4. Report ~/clawd residue
+  const clawdDir = join(home, 'clawd');
+  if (existsSync(clawdDir)) {
+    log('');
+    log(`Residue: ${clawdDir} was created by an older version of Visualkan (where the OpenClaw path was incorrect). It is unused and can be safely deleted.`);
   }
 }
 

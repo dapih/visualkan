@@ -828,7 +828,7 @@ test('status reports ~/clawd as residue and deletes nothing', (t) => {
   assert.ok(existsSync(clawdDir), 'clawd must not be deleted');
 });
 
-test('uninstall deletes the directory that install wrote', (t) => {
+test('uninstall deletes the directory that install wrote and reports plainly when absent', (t) => {
   const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-uninst-'));
   t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
 
@@ -845,6 +845,52 @@ test('uninstall deletes the directory that install wrote', (t) => {
   assert.ok(!existsSync(dir2), 'visualkan-wizard directory must be deleted');
   assert.ok(logs.some((l) => l.includes('Uninstalled visualkan')), 'logs uninstall of visualkan');
   assert.ok(logs.some((l) => l.includes('Uninstalled visualkan-wizard')), 'logs uninstall of visualkan-wizard');
+
+  const absentLogs = [];
+  cmdUninstall({}, ['claude'], { home: tmpHome, log: (msg) => absentLogs.push(msg) });
+  assert.ok(absentLogs.some((l) => l.includes('visualkan is not installed at')), 'reports plainly when target is absent');
+});
+
+test('uninstall reports surviving copies in plugin cache and other platform roots with owning commands', (t) => {
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-uninst-other-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  // 1. Install claude target
+  cmdInstall({}, ['claude'], { home: tmpHome, log: () => {} });
+
+  // 2. Install codex target
+  cmdInstall({}, ['codex'], { home: tmpHome, log: () => {} });
+
+  // 3. Plant plugin cache copy
+  const vDir = join(tmpHome, '.claude', 'plugins', 'cache', 'visualkan', 'visualkan', '0.6.0', 'skills', 'visualkan');
+  mkdirSync(vDir, { recursive: true });
+  writeFileSync(join(vDir, 'SKILL.md'), 'plugin skill');
+  writeFileSync(join(vDir, 'visualkan.metadata.json'), JSON.stringify({ version: '0.6.0' }));
+
+  // 4. Plant ~/clawd residue
+  const clawdDir = join(tmpHome, 'clawd', 'skills');
+  mkdirSync(clawdDir, { recursive: true });
+
+  const logs = [];
+  cmdUninstall({}, ['claude'], { home: tmpHome, log: (msg) => logs.push(msg) });
+
+  const output = logs.join('\n');
+  assert.ok(output.includes('Uninstalled visualkan from'), 'uninstalled claude target');
+
+  // Plugin cache survived and reported
+  assert.ok(existsSync(join(vDir, 'SKILL.md')), 'plugin cache copy must survive');
+  assert.ok(output.includes('Claude Code Plugin'), 'reports surviving plugin copy');
+  assert.ok(output.includes('claude plugin uninstall visualkan'), 'names plugin uninstall command');
+
+  // Codex copy survived and reported
+  const codexDir = targetDir('codex', null, 'visualkan', tmpHome);
+  assert.ok(existsSync(join(codexDir, 'SKILL.md')), 'codex copy must survive');
+  assert.ok(output.includes('Codex CLI'), 'reports surviving codex copy');
+  assert.ok(output.includes('visualkan uninstall codex'), 'names codex uninstall command');
+
+  // Residue reported and survived
+  assert.ok(output.includes('Residue:'), 'reports residue');
+  assert.ok(existsSync(clawdDir), 'clawd residue must not be deleted');
 });
 
 test('install raises a UserError when the Runtime is missing from the package', (t) => {
