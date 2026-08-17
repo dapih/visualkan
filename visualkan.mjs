@@ -186,6 +186,42 @@ function projectRootFrom(flags) {
   return flags.project;
 }
 
+// The four values every command needs, resolved in one place. They travelled
+// together as four separate lines in three commands, and drifted: two commands
+// read a `--home` flag that nothing documents or sets, and one did not.
+function commandContext(flags, options) {
+  return {
+    home: options.home ?? homedir(),
+    projectRoot: projectRootFrom(flags),
+    packageDir: options.packageDir ?? HERE,
+    log: options.log ?? console.log,
+  };
+}
+
+// Every Platform skill root that holds an installed copy. Global roots always.
+// Project roots only when one was given, and only for Platforms that support
+// project scope.
+//
+// This walk existed four times, once per command per scope. The copies had
+// already drifted: `status` carried a `scope` field that `uninstall` did not.
+// Callers differ in what they build from a hit, never in where they look, so
+// only the walk lives here.
+function* installedCopies(home, projectRoot) {
+  const roots = [{ root: null, suffix: '', flag: '' }];
+  if (projectRoot) roots.push({ root: projectRoot, suffix: ' (project)', flag: ' --project' });
+
+  for (const { root, suffix, flag } of roots) {
+    for (const [key, platform] of Object.entries(PLATFORMS)) {
+      if (root && !platform.project) continue;
+      for (const skillName of Object.keys(SKILLS)) {
+        const dir = targetDir(key, root, skillName, home);
+        if (!existsSync(join(dir, 'SKILL.md'))) continue;
+        yield { key, skillName, dir, label: `${platform.label}${suffix}`, flag };
+      }
+    }
+  }
+}
+
 // Both skills install together. An optional install would mean that the user
 // has to know that the Wizard exists, which is the problem the Wizard solves.
 export function cmdInstall(flags = {}, positional = [], options = {}) {
@@ -193,10 +229,7 @@ export function cmdInstall(flags = {}, positional = [], options = {}) {
   if (!platformKey) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
-  const home = options.home ?? homedir();
-  const projectRoot = projectRootFrom(flags);
-  const packageDir = options.packageDir ?? HERE;
-  const log = options.log ?? console.log;
+  const { home, projectRoot, packageDir, log } = commandContext(flags, options);
 
   const runtimeSource = join(packageDir, 'skills', PRIMARY_SKILL, RUNTIME_DIR, RUNTIME_FILE);
   if (!existsSync(runtimeSource)) {
@@ -235,9 +268,7 @@ export function cmdUninstall(flags = {}, positional = [], options = {}) {
   if (!platformKey) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
-  const home = options.home ?? homedir();
-  const projectRoot = projectRootFrom(flags);
-  const log = options.log ?? console.log;
+  const { home, projectRoot, log } = commandContext(flags, options);
 
   // 1. Delete target directory
   for (const skillName of Object.keys(SKILLS)) {
@@ -253,37 +284,13 @@ export function cmdUninstall(flags = {}, positional = [], options = {}) {
   // 2. Scan for other copies that survived
   const otherCopies = [];
 
-  // Global platform roots
-  for (const [key, platform] of Object.entries(PLATFORMS)) {
-    for (const skillName of Object.keys(SKILLS)) {
-      const dir = targetDir(key, null, skillName, home);
-      if (existsSync(join(dir, 'SKILL.md'))) {
-        otherCopies.push({
-          platform: platform.label,
-          skillName,
-          dir,
-          owner: `visualkan uninstall ${key}`,
-        });
-      }
-    }
-  }
-
-  // Project platform roots if --project was passed
-  if (projectRoot) {
-    for (const [key, platform] of Object.entries(PLATFORMS)) {
-      if (!platform.project) continue;
-      for (const skillName of Object.keys(SKILLS)) {
-        const dir = targetDir(key, projectRoot, skillName, home);
-        if (existsSync(join(dir, 'SKILL.md'))) {
-          otherCopies.push({
-            platform: `${platform.label} (project)`,
-            skillName,
-            dir,
-            owner: `visualkan uninstall ${key} --project`,
-          });
-        }
-      }
-    }
+  for (const copy of installedCopies(home, projectRoot)) {
+    otherCopies.push({
+      platform: copy.label,
+      skillName: copy.skillName,
+      dir: copy.dir,
+      owner: `visualkan uninstall ${copy.key}${copy.flag}`,
+    });
   }
 
   // Claude Code plugin cache
@@ -369,10 +376,7 @@ export function findPluginCacheCopies(home = homedir()) {
 }
 
 export function cmdStatus(flags = {}, positional = [], options = {}) {
-  const home = options.home ?? homedir();
-  const projectRoot = projectRootFrom(flags);
-  const packageDir = options.packageDir ?? HERE;
-  const log = options.log ?? console.log;
+  const { home, projectRoot, packageDir, log } = commandContext(flags, options);
 
   const current = version(packageDir);
   log(`${PRIMARY_SKILL} v${current}`);
@@ -380,70 +384,34 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
   const found = [];
   let skew = false;
 
-  // 1. Scan platform global roots
-  for (const [key, platform] of Object.entries(PLATFORMS)) {
-    for (const skillName of Object.keys(SKILLS)) {
-      const dir = targetDir(key, null, skillName, home);
-      if (existsSync(join(dir, 'SKILL.md'))) {
-        const ver = installedVersion(dir, skillName);
-        const runtime = skillName === PRIMARY_SKILL ? existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE)) : true;
-        let mark = '-';
-        if (ver) {
-          mark = ver === current ? `v${ver}` : `v${ver} STALE`;
-          if (ver !== current) skew = true;
-          if (!runtime) {
-            mark += ' no-runtime';
-            skew = true;
-          }
-        }
-        found.push({
-          platform: platform.label,
-          platformKey: key,
-          skillName,
-          dir,
-          version: ver,
-          status: mark,
-          isInstallerTarget: true,
-          owner: `visualkan install ${key}`,
-        });
+  // 1. Scan every Platform skill root
+  for (const copy of installedCopies(home, projectRoot)) {
+    const ver = installedVersion(copy.dir, copy.skillName);
+    const runtime = copy.skillName === PRIMARY_SKILL
+      ? existsSync(join(copy.dir, RUNTIME_DIR, RUNTIME_FILE))
+      : true;
+    let mark = '-';
+    if (ver) {
+      mark = ver === current ? `v${ver}` : `v${ver} STALE`;
+      if (ver !== current) skew = true;
+      if (!runtime) {
+        mark += ' no-runtime';
+        skew = true;
       }
     }
+    found.push({
+      platform: copy.label,
+      platformKey: copy.key,
+      skillName: copy.skillName,
+      dir: copy.dir,
+      version: ver,
+      status: mark,
+      isInstallerTarget: true,
+      owner: `visualkan install ${copy.key}${copy.flag}`,
+    });
   }
 
-  // 2. Scan platform project roots if --project was passed
-  if (projectRoot) {
-    for (const [key, platform] of Object.entries(PLATFORMS)) {
-      if (!platform.project) continue;
-      for (const skillName of Object.keys(SKILLS)) {
-        const dir = targetDir(key, projectRoot, skillName, home);
-        if (existsSync(join(dir, 'SKILL.md'))) {
-          const ver = installedVersion(dir, skillName);
-          const runtime = skillName === PRIMARY_SKILL ? existsSync(join(dir, RUNTIME_DIR, RUNTIME_FILE)) : true;
-          let mark = '-';
-          if (ver) {
-            mark = ver === current ? `v${ver}` : `v${ver} STALE`;
-            if (ver !== current) skew = true;
-            if (!runtime) {
-              mark += ' no-runtime';
-              skew = true;
-            }
-          }
-          found.push({
-            platform: `${platform.label} (project)`,
-            platformKey: key,
-            skillName,
-            dir,
-            version: ver,
-            status: mark,
-            isInstallerTarget: true,
-            owner: `visualkan install ${key} --project`,
-          });
-        }
-      }
-    }
-  }
-
-  // 3. Scan Claude Code plugin cache
+  // 2. Scan Claude Code plugin cache
   const pluginCopies = findPluginCacheCopies(home);
   for (const copy of pluginCopies) {
     found.push({
@@ -473,7 +441,7 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
     log('No installed skills found.');
   }
 
-  // 4. Warning for Claude Code global scope shadowing project scope
+  // 3. Warning for Claude Code global scope shadowing project scope
   if (projectRoot) {
     const claudeGlobal = targetDir('claude', null, 'visualkan', home);
     const claudeProject = targetDir('claude', projectRoot, 'visualkan', home);
@@ -483,21 +451,21 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
     }
   }
 
-  // 5. Residue notice for ~/clawd
+  // 4. Residue notice for ~/clawd
   const clawdDir = join(home, 'clawd');
   if (existsSync(clawdDir)) {
     log('');
     log(`Residue: ${clawdDir} was created by an older version of Visualkan (where the OpenClaw path was incorrect). It is unused and can be safely deleted.`);
   }
 
-  // 6. Stale/broken advice
+  // 5. Stale/broken advice
   if (skew) {
     log('');
     log(`A skill above was installed by an older version, or is missing its Runtime.`);
     log(`Re-run: visualkan install <platform>`);
   }
 
-  // 7. Trailer line naming what was searched and what was not checked
+  // 6. Trailer line naming what was searched and what was not checked
   const searchedParts = ['platform global roots'];
   if (projectRoot) searchedParts.push('project roots');
   if (pluginCopies.length > 0) searchedParts.push('Claude Code plugin cache');
