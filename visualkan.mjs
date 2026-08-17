@@ -390,7 +390,10 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
     const runtime = copy.skillName === PRIMARY_SKILL
       ? existsSync(join(copy.dir, RUNTIME_DIR, RUNTIME_FILE))
       : true;
-    let mark = '-';
+    // A copy with no sidecar has no version to print. It says so, rather than
+    // printing a dash that reads like a missing value of some other kind. The
+    // Owning Command beside it is the answer either way. See #23 section 10.
+    let mark = 'no-version';
     if (ver) {
       mark = ver === current ? `v${ver}` : `v${ver} STALE`;
       if (ver !== current) skew = true;

@@ -877,6 +877,25 @@ test('status reports a copy placed by hand in a Platform skill root, and names t
   assert.ok(output.includes('visualkan install codex'), 'names the Owning Command');
 });
 
+test('status says no-version for a copy that carries no sidecar', (t) => {
+  // #23 section 10 asks status to print the version it found and the command
+  // that owns the location. A copy with no sidecar has no version, and it used
+  // to print a bare dash with no owner beside it, which reads like a missing
+  // value rather than a missing file.
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-status-nover-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+
+  const codexDir = targetDir('codex', null, 'visualkan', tmpHome);
+  mkdirSync(codexDir, { recursive: true });
+  writeFileSync(join(codexDir, 'SKILL.md'), 'hand placed, no sidecar');
+
+  const logs = [];
+  cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
+  const output = logs.join('\n');
+  assert.ok(output.includes('no-version'), 'says the version is absent');
+  assert.ok(output.includes('visualkan install codex'), 'still names the Owning Command');
+});
+
 test('status marks STALE only at the Installer target path', (t) => {
   const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-status-stale-'));
   t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
