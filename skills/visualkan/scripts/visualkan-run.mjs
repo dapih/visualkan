@@ -260,10 +260,18 @@ export function controlsReport(env, ver = null) {
   return lines.join('\n');
 }
 
+// Forward slashes work in bash, cmd.exe, and PowerShell alike, including paths
+// that contain a space. A backslash does not survive every one of them, so a
+// written path never carries one. This lives here, not in the Installer,
+// because the Installer imports the Runtime and never the reverse.
+export function toPosix(path) {
+  return path.replaceAll('\\', '/');
+}
+
 // --- Style Templates -------------------------------------------------------
-// A Style Template is a markdown file beside this one. The agent obtains it by
-// running `template --style <name>`, never by reading a path it guessed, so a
-// moved or missing file fails here with a clear message. See ADR 0007.
+// A Style Template is a markdown file in `references/`, a sibling of this
+// file's own directory. The agent reads it directly, by the path the skill
+// body anchors. See ADR 0009, which reversed ADR 0007 on delivery alone.
 
 export function templatePath(style, here = HERE) {
   if (!STYLES[style]) {
@@ -437,8 +445,8 @@ export async function cmdGenerate(flags) {
     throw new UserError(
       `This prompt does not match what the "${style}" style requires:\n` +
       gaps.map((g) => `  - ${g}`).join('\n') + '\n\n' +
-      `Read the template and rebuild the prompt from it:\n` +
-      `  node "${join(HERE, 'visualkan-run.mjs')}" template --style ${style}`
+      `Read the Style Template and rebuild the prompt from it:\n` +
+      `  ${toPosix(templatePath(style))}`
     );
   }
 

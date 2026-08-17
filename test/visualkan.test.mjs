@@ -37,6 +37,7 @@ import {
   nextOutputPath,
   availableBackends,
   controlsReport,
+  cmdGenerate,
   templatePath,
   readTemplate,
   promptGaps,
@@ -497,6 +498,30 @@ test('each style is gated against its own sections, not a shared list', () => {
   const mockupish = STYLES.mockup.requires.map((h) => `${h}: x.`).join('\n') + ' ' + 'w '.repeat(400);
   assert.deepEqual(promptGaps(mockupish, 'mockup'), []);
   assert.ok(promptGaps(mockupish, 'whiteboard').length, 'a mockup prompt must not satisfy whiteboard');
+});
+
+test('the gate sends the agent to the Style Template file, not the deleted command', async (t) => {
+  // The remedy the gate prints is the one message an agent sees on the exact
+  // failure ADR 0009 exists for. It named `template --style`, deleted in
+  // 0701ef3, so it sent the agent to `Unknown runtime command`. The USAGE
+  // assertions below never covered the error body, so the suite stayed green.
+  const dir = mkdtempSync(join(tmpdir(), 'vk-test-gate-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const promptFile = join(dir, 'prompt.txt');
+  writeFileSync(promptFile, 'Draw a nice whiteboard about DNS.');
+
+  await assert.rejects(
+    () => cmdGenerate({ 'prompt-file': promptFile, style: 'whiteboard' }),
+    (err) => {
+      assert.ok(!err.message.includes('template --style'), 'must not name the deleted command');
+      assert.ok(
+        err.message.includes('references/style-whiteboard.md'),
+        'must name the Style Template file'
+      );
+      assert.ok(!err.message.includes('\\'), 'every written path uses forward slashes');
+      return true;
+    }
+  );
 });
 
 test('neither USAGE nor RUNTIME_USAGE names the template command', () => {

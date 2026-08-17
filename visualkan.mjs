@@ -16,9 +16,12 @@ import {
   parseArgs,
   controlsReport,
   cmdGenerate,
-  readTemplate,
+  toPosix,
   STYLES,
 } from './skills/visualkan/scripts/visualkan-run.mjs';
+
+// Re-exported so that a caller of the Installer reaches it by one name.
+export { toPosix };
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const PRIMARY_SKILL = 'visualkan';
@@ -27,8 +30,8 @@ const PRIMARY_SKILL = 'visualkan';
 const RUNTIME_FILE = 'visualkan-run.mjs';
 const RUNTIME_DIR = 'scripts';
 
-// Style Templates ride along beside the Runtime, which resolves them relative
-// to itself. The agent never addresses them directly. See ADR 0007.
+// Style Templates ride along beside the Runtime, in a sibling directory. The
+// agent reads them directly, by the path the skill body anchors. See ADR 0009.
 const REFERENCE_DIR = 'references';
 
 // --- Skill registry --------------------------------------------------------
@@ -85,13 +88,6 @@ export const PLATFORMS = {
 };
 
 // --- Install ---------------------------------------------------------------
-
-// Forward slashes work in bash, cmd.exe, and PowerShell alike, including paths
-// that contain a space. A backslash does not survive every one of them, so a
-// written path never carries one. Verified by running, not by reading.
-export function toPosix(path) {
-  return path.replaceAll('\\', '/');
-}
 
 export function skillSourceFiles(skillName, packageDir = HERE) {
   const md = join(packageDir, 'skills', skillName, 'SKILL.md');
