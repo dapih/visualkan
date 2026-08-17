@@ -727,6 +727,24 @@ test('installedVersion returns null rather than throwing on a missing or broken 
   assert.equal(installedVersion('/anywhere', () => '{}', () => true), null);
 });
 
+test('--project without a directory is refused, and never reaches path.resolve', (t) => {
+  // parseArgs turns a valueless `--project` into boolean true. That value used
+  // to pass through a fallback chain into path.resolve, and `visualkan status
+  // --project` died with a raw ERR_INVALID_ARG_TYPE stack. install took the
+  // other branch of the same chain and silently installed globally instead.
+  const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-projflag-'));
+  t.after(() => rmSync(tmpHome, { recursive: true, force: true }));
+  const opts = { home: tmpHome, log: () => {} };
+
+  for (const [name, cmd] of [['install', cmdInstall], ['uninstall', cmdUninstall], ['status', cmdStatus]]) {
+    assert.throws(
+      () => cmd({ project: true }, ['claude'], opts),
+      /--project needs a directory/,
+      `${name} must refuse a valueless --project`
+    );
+  }
+});
+
 // --- command layer (ticket #17) --------------------------------------------
 
 test('install writes every required file into a temporary home directory', (t) => {

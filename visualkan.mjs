@@ -171,6 +171,22 @@ export function rewriteWizardSiblingPath(body, siblingPath) {
   return body.replace(WIZARD_ANCHOR_LINE, siblingPath);
 }
 
+// One place decides where a command works, so the three commands cannot drift
+// apart. `--project` with no value parses as boolean true, and that value used
+// to pass through a fallback chain into path.resolve, which threw a raw Node
+// stack trace rather than a message. ADR 0004 rejects fallback chains for
+// exactly this: the failures they produce are rare and hard to reproduce.
+//
+// `flags` carries the command line. `options` is the test seam. Neither stands
+// in for the other.
+function projectRootFrom(flags) {
+  if (flags?.project === undefined) return null;
+  if (typeof flags.project !== 'string') {
+    throw new UserError('--project needs a directory. Pass --project DIR, or omit it for global scope.');
+  }
+  return flags.project;
+}
+
 // Both skills install together. An optional install would mean that the user
 // has to know that the Wizard exists, which is the problem the Wizard solves.
 export function cmdInstall(flags = {}, positional = [], options = {}) {
@@ -179,7 +195,7 @@ export function cmdInstall(flags = {}, positional = [], options = {}) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
   const home = options.home ?? homedir();
-  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? null);
+  const projectRoot = projectRootFrom(flags);
   const packageDir = options.packageDir ?? HERE;
   const log = options.log ?? console.log;
 
@@ -220,9 +236,9 @@ export function cmdUninstall(flags = {}, positional = [], options = {}) {
   if (!platformKey) {
     throw new UserError(`Which platform? Choose one of: ${Object.keys(PLATFORMS).join(', ')}.`);
   }
-  const home = options.home ?? flags.home ?? homedir();
-  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? flags.project ?? null);
-  const log = options.log ?? flags.log ?? console.log;
+  const home = options.home ?? homedir();
+  const projectRoot = projectRootFrom(flags);
+  const log = options.log ?? console.log;
 
   // 1. Delete target directory
   for (const skillName of Object.keys(SKILLS)) {
@@ -363,10 +379,10 @@ export function findPluginCacheCopies(home = homedir()) {
 }
 
 export function cmdStatus(flags = {}, positional = [], options = {}) {
-  const home = options.home ?? flags.home ?? homedir();
-  const projectRoot = typeof flags?.project === 'string' ? flags.project : (options.projectRoot ?? options.project ?? flags.project ?? null);
-  const packageDir = options.packageDir ?? flags.packageDir ?? HERE;
-  const log = options.log ?? flags.log ?? console.log;
+  const home = options.home ?? homedir();
+  const projectRoot = projectRootFrom(flags);
+  const packageDir = options.packageDir ?? HERE;
+  const log = options.log ?? console.log;
 
   const current = version(packageDir);
   log(`${PRIMARY_SKILL} v${current}`);
