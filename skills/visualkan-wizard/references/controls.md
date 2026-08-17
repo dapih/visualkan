@@ -29,11 +29,11 @@ Visualkan Controls v0.6.0
   multi-frame         Three to five Frames that build up. One call for each, so the cost multiplies.
 
 --backend        Default: the first available in this list
-  openai              OpenAI gpt-image-2      set OPENAI_API_KEY
-  gemini              Gemini Nano Banana 2    set GEMINI_API_KEY
-  openrouter          OpenRouter              set OPENROUTER_API_KEY
+  openai              OpenAI gpt-image-2      OPENAI_API_KEY
+  gemini              Gemini Nano Banana 2    GEMINI_API_KEY
+  openrouter          OpenRouter              OPENROUTER_API_KEY
   native              Any platform with its own generate_image tool. Only the agent can detect it.
-  Auto-detect finds nothing here. Set a key, or use a native generate_image tool.
+  Auto-detect chooses the first backend above whose key is set.
 
 --model          Applies to --backend openrouter only. See ADR 0003.
   default             bytedance-seed/seedream-4.5

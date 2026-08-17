@@ -387,8 +387,21 @@ test('marketplace.json declares the three required fields', () => {
 test('the generated visualkan-wizard controls.md matches controlsReport and carries version', () => {
   const expected = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
   const controlsMd = readFileSync(new URL('../skills/visualkan-wizard/references/controls.md', import.meta.url), 'utf8');
-  assert.equal(controlsMd.trim(), controlsReport({}, expected).trim());
+  assert.equal(controlsMd.trim(), controlsReport(null, expected).trim());
   assert.match(controlsMd, new RegExp(`Visualkan Controls v${expected}`));
+});
+
+test('the generated controls.md states no fact about the machine that generated it', () => {
+  // It was generated with an empty env, so it told every reader to set all
+  // three keys and that auto-detect found nothing. Those are the maintainer's
+  // environment frozen into a file that ships to other people. The assertion
+  // above could never catch it, because it compared the file against the same
+  // empty env.
+  const controlsMd = readFileSync(new URL('../skills/visualkan-wizard/references/controls.md', import.meta.url), 'utf8');
+  assert.ok(!controlsMd.includes('set OPENAI_API_KEY'), 'must not claim a key is unset');
+  assert.ok(!controlsMd.includes('Auto-detect chooses:'), 'must not claim a key is set');
+  assert.ok(!controlsMd.includes('Auto-detect finds nothing here'), 'must not judge the reader machine');
+  assert.ok(controlsMd.includes('OPENAI_API_KEY'), 'must still name the key');
 });
 
 test('the wizard frontmatter carries disable-model-invocation: true', () => {

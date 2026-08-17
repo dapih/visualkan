@@ -235,20 +235,30 @@ export function controlsReport(env, ver = null) {
   }
   lines.push('');
 
-  const available = availableBackends(env);
+  // `env` is null when the report is generated into a file. Such a file ships
+  // to a reader whose machine it cannot see, so it names each key instead of
+  // claiming whether that key is set. An empty object is a different claim: a
+  // real machine with no key set.
+  const onMachine = env !== null;
   lines.push('--backend        Default: the first available in this list');
   for (const name of DETECT_ORDER) {
-    const state = env[BACKENDS[name].env] ? 'available' : `set ${BACKENDS[name].env}`;
+    const keyName = BACKENDS[name].env;
+    const state = onMachine ? (env[keyName] ? 'available' : `set ${keyName}`) : keyName;
     lines.push(`  ${pad(name, 20)}${pad(BACKENDS[name].label, 24)}${state}`);
   }
   // Described by capability, never by product name. Any platform that gives the
   // agent a generate_image tool qualifies, and only the agent can see one.
   lines.push(`  ${pad('native', 20)}${pad('Any platform with its own', 26)}generate_image tool. Only the agent can detect it.`);
-  lines.push(
-    available.length
-      ? `  Auto-detect chooses: ${available[0]}`
-      : '  Auto-detect finds nothing here. Set a key, or use a native generate_image tool.'
-  );
+  if (onMachine) {
+    const available = availableBackends(env);
+    lines.push(
+      available.length
+        ? `  Auto-detect chooses: ${available[0]}`
+        : '  Auto-detect finds nothing here. Set a key, or use a native generate_image tool.'
+    );
+  } else {
+    lines.push('  Auto-detect chooses the first backend above whose key is set.');
+  }
   lines.push('');
 
   lines.push('--model          Applies to --backend openrouter only. See ADR 0003.');

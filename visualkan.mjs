@@ -550,7 +550,7 @@ export function cmdSyncVersion(packageDir = HERE, log = console.log) {
     mkdirSync(controlsDir, { recursive: true });
   }
   const controlsTarget = join(controlsDir, 'controls.md');
-  writeFileSync(controlsTarget, `${controlsReport({}, ver)}\n`);
+  writeFileSync(controlsTarget, `${controlsReport(null, ver)}\n`);
   log(`controls.md generated for visualkan-wizard (v${ver})`);
 }
 
