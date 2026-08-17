@@ -395,7 +395,6 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
           }
         }
         found.push({
-          scope: 'global',
           platform: platform.label,
           platformKey: key,
           skillName,
@@ -428,7 +427,6 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
             }
           }
           found.push({
-            scope: 'project',
             platform: `${platform.label} (project)`,
             platformKey: key,
             skillName,
@@ -447,7 +445,6 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
   const pluginCopies = findPluginCacheCopies(home);
   for (const copy of pluginCopies) {
     found.push({
-      scope: 'plugin-cache',
       platform: copy.platform,
       platformKey: copy.platformKey,
       skillName: copy.skillName,
@@ -471,13 +468,13 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
     log('No installed skills found.');
   }
 
-  // 4. Warning for Claude Code personal scope shadowing project scope
+  // 4. Warning for Claude Code global scope shadowing project scope
   if (projectRoot) {
     const claudeGlobal = targetDir('claude', null, 'visualkan', home);
     const claudeProject = targetDir('claude', projectRoot, 'visualkan', home);
     if (existsSync(join(claudeGlobal, 'SKILL.md')) && existsSync(join(claudeProject, 'SKILL.md'))) {
       log('');
-      log(`Warning: Claude Code personal scope (${claudeGlobal}) shadows project scope (${claudeProject}).`);
+      log(`Warning: Claude Code global scope (${claudeGlobal}) shadows project scope (${claudeProject}).`);
     }
   }
 

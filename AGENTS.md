@@ -7,7 +7,7 @@ Visualkan turns content into a visual explanation, and installs as a skill into 
 | Document | Authority over |
 |---|---|
 | `CONTEXT.md` | Naming. One term per concept. Check it before you add or rename a term. |
-| `docs/adr/` | Architecture, and the consequences each decision carries. Seven decisions, numbered 0001 to 0007. |
+| `docs/adr/` | Architecture, and the consequences each decision carries. Nine decisions, numbered 0001 to 0009. |
 | `RELEASING.md` | Versioning and publishing. |
 
 ## Verify by executing

@@ -35,12 +35,20 @@ An AI coding assistant that can run Visualkan. For example Antigravity, Codex, C
 _Avoid_: host, client, agent, tool, IDE
 
 **Scope**:
-Where an installed copy of Visualkan applies. Global scope covers every project for one user. Project scope covers one project.
-_Avoid_: install location, install level
+Where an installed copy of Visualkan applies. Global scope covers every project for one user. Project scope covers one project. How a copy arrived is a Channel, not a Scope.
+_Avoid_: install location, install level, personal
 
 **Channel**:
 The route by which Visualkan reaches a Platform. The npm package, the Claude Code plugin marketplace, `npx skills add`, and a manual copy of the files are each a Channel.
 _Avoid_: install method, distribution, route, delivery
+
+**Owning Command**:
+The command that can update or remove one installed copy. `status` and `uninstall` name it for every copy they find, because a copy the Installer did not write cannot be removed by the Installer.
+_Avoid_: owning tool, managing command, responsible command, source command
+
+**Residue**:
+A directory that an older version of Visualkan created and that no Platform reads. `status` and `uninstall` report it and never delete it, so the user decides.
+_Avoid_: orphan, leftover, junk, debris, dead directory
 
 **Anchor Sentence**:
 The one literal line in a skill body that names a path relative to the skill's own directory, and asks the agent to resolve it against the directory the skill was loaded from. See ADR 0008.

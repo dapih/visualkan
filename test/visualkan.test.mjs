@@ -796,7 +796,7 @@ test('status scans project roots only when --project is given', (t) => {
   assert.ok(logsWith.join('\n').includes('Claude Code (project)'), 'must scan project with flag');
 });
 
-test('status warns when a Claude Code personal-scope copy shadows a project-scope copy', (t) => {
+test('status warns when a Claude Code global-scope copy shadows a project-scope copy', (t) => {
   const tmpHome = mkdtempSync(join(tmpdir(), 'vk-test-shadow-h-'));
   const tmpProj = mkdtempSync(join(tmpdir(), 'vk-test-shadow-p-'));
   t.after(() => {
@@ -810,7 +810,7 @@ test('status warns when a Claude Code personal-scope copy shadows a project-scop
   const logs = [];
   cmdStatus({ project: tmpProj }, [], { home: tmpHome, log: (msg) => logs.push(msg) });
   const output = logs.join('\n');
-  assert.ok(output.includes('Warning: Claude Code personal scope') && output.includes('shadows project scope'));
+  assert.ok(output.includes('Warning: Claude Code global scope') && output.includes('shadows project scope'));
 });
 
 test('status reports ~/clawd as residue and deletes nothing', (t) => {
