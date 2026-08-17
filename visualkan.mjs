@@ -145,27 +145,17 @@ export function runtimePath(platformKey, projectRoot, skillName = PRIMARY_SKILL,
   return installedPath(platformKey, projectRoot, skillName, [RUNTIME_DIR, RUNTIME_FILE], home);
 }
 
-export function skillDocPath(platformKey, projectRoot, skillName = PRIMARY_SKILL, home = homedir()) {
-  return installedPath(platformKey, projectRoot, skillName, ['SKILL.md'], home);
-}
+export const RUNTIME_ANCHOR_LINE =
+  'node "<this skill\'s own directory>/scripts/visualkan-run.mjs" generate --prompt-file <file> ...';
 
-// Every placeholder a skill body may carry, and what install writes for it.
-// A placeholder with no rule here is a bug the test suite catches, because a
-// leftover {{...}} reaches the agent as literal text.
-export function substitutions(platformKey, projectRoot, home = homedir()) {
-  return {
-    RUNTIME_PATH: runtimePath(platformKey, projectRoot, PRIMARY_SKILL, home),
-    VISUALKAN_SKILL_PATH: skillDocPath(platformKey, projectRoot, PRIMARY_SKILL, home),
-  };
-}
-
-export function applySubstitutions(body, values) {
-  return body.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key) => {
-    if (!(key in values)) {
-      throw new UserError(`Skill body uses {{${key}}}, which install has no value for.`);
-    }
-    return values[key];
-  });
+export function rewriteRuntimePath(body, runtimePath) {
+  if (!body.includes(RUNTIME_ANCHOR_LINE)) {
+    throw new UserError('Could not find the Runtime anchor line in the skill body.');
+  }
+  return body.replace(
+    RUNTIME_ANCHOR_LINE,
+    `node "${runtimePath}" generate --prompt-file <file> ...`
+  );
 }
 
 // Both skills install together. An optional install would mean that the user
@@ -180,7 +170,6 @@ export function cmdInstall(flags = {}, positional = [], options = {}) {
   const packageDir = options.packageDir ?? HERE;
   const log = options.log ?? console.log;
 
-  const values = substitutions(platformKey, projectRoot, home);
   const runtimeSource = join(packageDir, 'skills', PRIMARY_SKILL, RUNTIME_DIR, RUNTIME_FILE);
   if (!existsSync(runtimeSource)) {
     throw new UserError(`The Runtime is missing from the package at ${runtimeSource}.`);
@@ -192,17 +181,22 @@ export function cmdInstall(flags = {}, positional = [], options = {}) {
     }
   }
 
+  const runtimeP = runtimePath(platformKey, projectRoot, PRIMARY_SKILL, home);
+
   for (const skillName of Object.keys(SKILLS)) {
     const { md } = skillSourceFiles(skillName, packageDir);
     const sourceDir = join(packageDir, 'skills', skillName);
     const dir = targetDir(platformKey, projectRoot, skillName, home);
     cpSync(sourceDir, dir, { recursive: true });
 
-    // The skill body is templated, not copied. It carries the resolved path.
-    writeFileSync(join(dir, 'SKILL.md'), applySubstitutions(readFileSync(md, 'utf8'), values));
+    let body = readFileSync(md, 'utf8');
+    if (skillName === PRIMARY_SKILL) {
+      body = rewriteRuntimePath(body, runtimeP);
+    }
+    writeFileSync(join(dir, 'SKILL.md'), body);
     log(`Installed ${skillName} v${version(packageDir)} to ${join(dir, 'SKILL.md')}`);
   }
-  log(`Runtime path written into both skills: ${values.RUNTIME_PATH}`);
+  log(`Runtime path written into visualkan: ${runtimeP}`);
 }
 
 export function cmdUninstall(flags = {}, positional = [], options = {}) {

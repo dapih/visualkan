@@ -16,10 +16,10 @@ The `visualkan` skill takes nine flags. A user who does not know them has to rea
 Run this exact command:
 
 ```bash
-node "{{RUNTIME_PATH}}" controls
+node "../visualkan/scripts/visualkan-run.mjs" controls
 ```
 
-That path was written when the skill was installed, so it needs no PATH lookup and no particular working directory. Do not search for a `visualkan` command, and do not look for a catalog in any skill library. This command prints it.
+That path resolves relative to this skill's directory, so it needs no PATH lookup and no particular working directory. Do not search for a `visualkan` command, and do not look for a catalog in any skill library. This command prints it.
 
 The output lists every Control, every legal value, and the default. It also reports which Backends this environment can reach.
 
@@ -63,10 +63,10 @@ Do not judge the answer here. The next skill tests whether the Content can fill 
 
 ## Step 4: Hand the run to the visualkan skill
 
-Read the skill file at this exact path, which was written when the skill was installed:
+Read the skill file at this exact path, which sits beside this one:
 
 ```
-{{VISUALKAN_SKILL_PATH}}
+../visualkan/SKILL.md
 ```
 
 Follow that file from **Step 2: Analyze the content**, with the Controls and the Content that this wizard collected.

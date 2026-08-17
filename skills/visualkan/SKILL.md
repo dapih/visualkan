@@ -60,10 +60,10 @@ There are exactly two routes. Pick one and do not improvise a third.
 
 **Native route.** If a `generate_image` tool exists in this environment, use it. Antigravity and Codex provide one, image generation is included in the subscription, and no API key, CLI, or shell command is needed.
 
-**CLI route.** Otherwise, run the Runtime at this exact path, which was written when the skill was installed:
+**CLI route.** Otherwise, run the Runtime. It is at `scripts/visualkan-run.mjs`, inside this skill's own directory. Resolve that relative path against the directory this skill was loaded from, not against the current working directory, and write it with forward slashes:
 
 ```bash
-node "{{RUNTIME_PATH}}" generate --prompt-file <file> ...
+node "<this skill's own directory>/scripts/visualkan-run.mjs" generate --prompt-file <file> ...
 ```
 
 That path needs no PATH lookup and no particular working directory. Do not search for a `visualkan` command. The Runtime performs backend detection, API key validation, `--model` checking, size selection, the HTTP request, and writing the file.
@@ -143,21 +143,14 @@ After parsing, proceed to Step 2 using the extracted structure as the input for 
 
 Before generating any image, you MUST deeply analyze the input content to extract structure. This is the most critical step — the quality of the visual depends entirely on this analysis.
 
-Perform the following analysis and write it out explicitly:
-
-1. **Core Concept**: What is the single main idea?
-2. **Sections**: List 3-12 sections depending on complexity setting
-3. **Relationships**: How do sections connect? (hierarchy, sequence, cause-effect, comparison, part-whole)
-4. **Visual Metaphors**: What real-world objects or metaphors could represent each concept? (e.g., "security" → shield, "data flow" → pipeline/river, "scaling" → mountains/ladder)
-5. **Layout Strategy**: How should sections be arranged spatially? (radial from center, left-to-right flow, top-to-bottom hierarchy, grid, timeline)
-6. **Color Coding**: Assign a color theme to each major section for visual grouping
+Perform the analysis defined in "Content Analysis: the mandatory breakdown" and write it out explicitly.
 
 ### Step 3: Clarification
 
 Run this step when one of these two conditions is true. Skip it in every other case.
 
 1. **No content exists.** Step 1 sent you here.
-2. **Step 2 cannot reach the section floor.** `simple` needs 3 sections, `moderate` needs 5, and `detailed` needs 8. Run `node "{{RUNTIME_PATH}}" controls` to confirm these numbers.
+2. **Step 2 cannot reach the section floor.** `simple` needs 3 sections, `moderate` needs 5, and `detailed` needs 8.
 
 Content that cannot fill the floor forces you to invent sections. An invented section produces an image that looks confident and states nothing true. That is the failure this step prevents.
 
@@ -224,7 +217,7 @@ The seven Style Templates do not live in this file. Each one is a separate refer
 Run this command with the Style you resolved in Step 1, and build the Image Prompt from what it prints:
 
 ```bash
-node "{{RUNTIME_PATH}}" template --style <style>
+node "<path from Step 1>" template --style <style>
 ```
 
 Do not write a prompt from memory, and do not invent a template. `generate` rejects a prompt that is missing the sections its Style requires, so a skipped template fails the run rather than producing a weaker image.
@@ -260,7 +253,7 @@ Write the prompt to a file first. Never pass the prompt as a command-line argume
 2. Run the CLI:
 
 ```bash
-node "{{RUNTIME_PATH}}" generate --prompt-file .visualkan-prompt.txt --style <style> --output <dir> --prefix <prefix>
+node "<path from Step 1>" generate --prompt-file .visualkan-prompt.txt --style <style> --output <dir> --prefix <prefix>
 ```
 
 3. Delete the temporary prompt file.

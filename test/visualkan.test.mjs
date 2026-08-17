@@ -7,19 +7,19 @@ import { fileURLToPath } from 'node:url';
 
 // The Installer owns install, uninstall, status, and sync-version.
 import {
-  cmdInstall,
-  cmdStatus,
-  cmdUninstall,
   targetDir,
+  installedPath,
   skillSourceFiles,
   runtimePath,
-  skillDocPath,
-  substitutions,
-  applySubstitutions,
+  RUNTIME_ANCHOR_LINE,
+  rewriteRuntimePath,
   installedVersion,
   toPosix,
   PLATFORMS,
   SKILLS,
+  cmdInstall,
+  cmdUninstall,
+  cmdStatus,
 } from '../visualkan.mjs';
 
 // The Runtime owns the Controls and image generation. See ADR 0006.
@@ -470,7 +470,6 @@ test('every written path uses forward slashes on every platform', () => {
   for (const key of Object.keys(PLATFORMS)) {
     for (const name of Object.keys(SKILLS)) {
       assert.ok(!runtimePath(key, null, name).includes('\\'), `${key}/${name} global`);
-      assert.ok(!skillDocPath(key, null, name).includes('\\'), `${key}/${name} doc`);
     }
   }
 });
@@ -491,38 +490,42 @@ test('runtimePath refuses --project for a global-only platform', () => {
   assert.throws(() => runtimePath('openclaw', '/srv/app', 'visualkan'), /supports global scope only/);
 });
 
-// --- placeholder substitution ----------------------------------------------
+// --- the Anchor Sentence and rewritten path (ADR 0008) ---------------------
 
-test('substitution leaves no placeholder behind in either skill body', () => {
-  // A leftover {{...}} reaches the agent as literal text and breaks the run.
-  const values = substitutions('claude', null);
+test('neither authored skill body carries a placeholder', () => {
   for (const name of Object.keys(SKILLS)) {
     const { md } = skillSourceFiles(name);
-    const out = applySubstitutions(readFileSync(md, 'utf8'), values);
-    assert.ok(!out.includes('{{'), `${name}.md still holds a placeholder after substitution`);
+    const content = readFileSync(md, 'utf8');
+    assert.ok(!content.includes('{{'), `${name}/SKILL.md must not contain {{ placeholders`);
   }
 });
 
-test('every placeholder used by a skill body has a substitution rule', () => {
-  // Adding a placeholder without wiring it must fail here, not in the field.
-  const values = substitutions('claude', null);
-  for (const name of Object.keys(SKILLS)) {
-    const { md } = skillSourceFiles(name);
-    for (const [, key] of readFileSync(md, 'utf8').matchAll(/\{\{([A-Z_]+)\}\}/g)) {
-      assert.ok(key in values, `${name}.md uses {{${key}}}, which install cannot fill`);
-    }
-  }
+test('the Runtime anchor line appears exactly once in the authored visualkan body', () => {
+  const body = readFileSync(new URL('../skills/visualkan/SKILL.md', import.meta.url), 'utf8');
+  const matches = body.split(RUNTIME_ANCHOR_LINE).length - 1;
+  assert.equal(matches, 1, 'Runtime anchor line must appear exactly once in visualkan/SKILL.md');
 });
 
-test('applySubstitutions throws rather than writing an unfilled placeholder', () => {
-  assert.throws(() => applySubstitutions('run {{NO_SUCH_KEY}}', {}), /has no value for/);
+test('the visualkan body carries the forward-slash clause', () => {
+  const body = readFileSync(new URL('../skills/visualkan/SKILL.md', import.meta.url), 'utf8');
+  assert.match(body, /write it with forward slashes/);
+  assert.match(body, /Resolve that relative path against the directory this skill was loaded from/);
 });
 
-test('the substituted body carries a runnable absolute path', () => {
-  const values = substitutions('claude', null);
-  const { md } = skillSourceFiles('visualkan');
-  const out = applySubstitutions(readFileSync(md, 'utf8'), values);
-  assert.ok(out.includes(`node "${values.RUNTIME_PATH}"`), 'the body must quote the written path');
+test('rewriteRuntimePath replaces the anchor line with the given path', () => {
+  const body = `header\n${RUNTIME_ANCHOR_LINE}\nfooter`;
+  const result = rewriteRuntimePath(body, 'C:/Users/test/runtime.mjs');
+  assert.equal(
+    result,
+    'header\nnode "C:/Users/test/runtime.mjs" generate --prompt-file <file> ...\nfooter'
+  );
+});
+
+test('rewriteRuntimePath throws when anchor line is missing', () => {
+  assert.throws(
+    () => rewriteRuntimePath('no anchor here', '/test/path'),
+    /Could not find the Runtime anchor line/
+  );
 });
 
 // --- version skew (ADR 0006) -----------------------------------------------
@@ -565,7 +568,7 @@ test('install writes every required file into a temporary home directory', (t) =
 
   assert.ok(logs.some((l) => l.includes('Installed visualkan')), 'logs installation of visualkan');
   assert.ok(logs.some((l) => l.includes('Installed visualkan-wizard')), 'logs installation of visualkan-wizard');
-  assert.ok(logs.some((l) => l.includes('Runtime path written into both skills:')), 'logs written runtime path');
+  assert.ok(logs.some((l) => l.includes('Runtime path written into visualkan:')), 'logs written runtime path');
 });
 
 test('a home directory containing a space survives install', (t) => {
