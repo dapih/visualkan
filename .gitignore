@@ -9,7 +9,3 @@ node_modules/
 # Local working notes: handoffs, drafts, ideas not ready to publish
 dev-ideas-and-brief/
 
-# Untracked as of 2026-08-14: kept locally, no longer shared through git
-CLAUDE.md
-AGENTS.md
-RELEASING.md
