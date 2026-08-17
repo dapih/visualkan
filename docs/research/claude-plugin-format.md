@@ -136,7 +136,9 @@ Note one documented inconsistency: [plugins-reference](https://code.claude.com/d
 - Path resolution for free. No Installer run, no placeholder rewriting, no copy of the Runtime — `${CLAUDE_PLUGIN_ROOT}` resolves at load time.
 - One-command install and update from a git URL, with the version recorded and `claude plugin update` handling refresh.
 - The whole repo travels, so `scripts/` and `references/` arrive without install logic.
-- Slash commands and `disable-model-invocation`, neither available to a plain skill directory.
+- Slash commands, which a plain skill directory does not have.
+
+> **Corrected by the research for issue #13.** This line originally claimed `disable-model-invocation` was unavailable to a plain skill directory. That is wrong. Anthropic scopes the frontmatter table to skills "at any level, including plugin skills", so the key works outside a plugin too, and the npm Channel gets the same ADR 0005 benefit. See `sibling-and-frontmatter.md`.
 - `claude plugin validate`, `details` and `tag` as a release check.
 
 The cost is that the two on-disk artifacts ADR 0006 warned about collapse into one, but only on this Channel — Visualkan still needs the Installer everywhere else.
