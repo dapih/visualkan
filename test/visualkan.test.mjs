@@ -718,13 +718,13 @@ test('rewriteWizardSiblingPath throws when anchor line is missing', () => {
 
 test('installedVersion reads the version an install wrote', () => {
   const read = () => JSON.stringify({ version: '0.4.1' });
-  assert.equal(installedVersion('/anywhere', read, () => true), '0.4.1');
+  assert.equal(installedVersion('/anywhere', 'visualkan', read, () => true), '0.4.1');
 });
 
 test('installedVersion returns null rather than throwing on a missing or broken file', () => {
-  assert.equal(installedVersion('/anywhere', () => '{}', () => false), null);
-  assert.equal(installedVersion('/anywhere', () => 'not json', () => true), null);
-  assert.equal(installedVersion('/anywhere', () => '{}', () => true), null);
+  assert.equal(installedVersion('/anywhere', 'visualkan', () => '{}', () => false), null);
+  assert.equal(installedVersion('/anywhere', 'visualkan', () => 'not json', () => true), null);
+  assert.equal(installedVersion('/anywhere', 'visualkan', () => '{}', () => true), null);
 });
 
 test('--project without a directory is refused, and never reaches path.resolve', (t) => {

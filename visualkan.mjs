@@ -134,14 +134,13 @@ export function installedPath(platformKey, projectRoot, skillName, parts = [], h
   if (!SKILLS[skillName]) {
     throw new UserError(`Unknown skill "${skillName}". Choose one of: ${Object.keys(SKILLS).join(', ')}.`);
   }
-  const partList = Array.isArray(parts) ? parts : [parts];
   if (projectRoot) {
     if (!platform.project) {
       throw new UserError(`${platform.label} supports global scope only, so --project does not apply.`);
     }
-    return toPosix(join(...platform.project, skillName, ...partList));
+    return toPosix(join(...platform.project, skillName, ...parts));
   }
-  return toPosix(join(home, ...platform.global, skillName, ...partList));
+  return toPosix(join(home, ...platform.global, skillName, ...parts));
 }
 
 export function runtimePath(platformKey, projectRoot, skillName = PRIMARY_SKILL, home = homedir()) {
@@ -317,20 +316,11 @@ export function cmdUninstall(flags = {}, positional = [], options = {}) {
 
 // Reads the version an installed skill folder was written with. That number
 // also dates the Runtime beside it, because install writes both together.
-export function installedVersion(dir, skillNameOrRead = basename(dir), read = readFileSync, exists = existsSync) {
-  let skillName = basename(dir);
-  let readFn = read;
-  let existsFn = exists;
-  if (typeof skillNameOrRead === 'function') {
-    readFn = skillNameOrRead;
-    existsFn = typeof read === 'function' ? read : existsSync;
-  } else if (typeof skillNameOrRead === 'string') {
-    skillName = skillNameOrRead;
-  }
+export function installedVersion(dir, skillName = basename(dir), read = readFileSync, exists = existsSync) {
   const meta = join(dir, `${skillName}.metadata.json`);
-  if (!existsFn(meta)) return null;
+  if (!exists(meta)) return null;
   try {
-    return JSON.parse(readFn(meta, 'utf8')).version ?? null;
+    return JSON.parse(read(meta, 'utf8')).version ?? null;
   } catch {
     return null;
   }
