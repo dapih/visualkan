@@ -404,6 +404,25 @@ test('the generated controls.md states no fact about the machine that generated 
   assert.ok(controlsMd.includes('OPENAI_API_KEY'), 'must still name the key');
 });
 
+test('no shipped skill body uses a banned synonym from CONTEXT.md', () => {
+  // Only the unambiguous multi-word terms are listed. Single words from the
+  // _Avoid_ lists appear honestly all over these files: `references/` is a real
+  // directory, and a generate_image tool is really a tool. A blanket scan of
+  // every _Avoid_ list would fail on correct text.
+  const banned = [
+    'catalog file', 'template file', 'style file', 'prompt template',
+    'controls list', 'options list', 'catalogue', 'visual-explainer',
+  ];
+  for (const skillName of Object.keys(SKILLS)) {
+    const body = readFileSync(
+      new URL(`../skills/${skillName}/SKILL.md`, import.meta.url), 'utf8'
+    ).toLowerCase();
+    for (const term of banned) {
+      assert.ok(!body.includes(term), `${skillName}/SKILL.md uses "${term}", which CONTEXT.md bans`);
+    }
+  }
+});
+
 test('the wizard frontmatter carries disable-model-invocation: true', () => {
   const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
   assert.match(body, /disable-model-invocation:\s*true/);

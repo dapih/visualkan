@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Visualkan Runtime: the Control catalog and image generation.
+// Visualkan Runtime: the Control Catalog and image generation.
 //
 // This file is reached two ways, and it is the same file both times. The
 // Installer imports it so that `visualkan controls` and `visualkan generate`
@@ -8,8 +8,8 @@
 // PATH lookup. See ADR 0006.
 //
 // It carries no version of its own. The version that matters is the one in the
-// <skill>/metadata.json written beside it at install time, and the Installer
-// reads that to report skew.
+// <skill>/<name>.metadata.json sidecar written at install time, and the
+// Installer reads that to report skew.
 
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
