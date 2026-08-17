@@ -446,7 +446,7 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
       skillName: copy.skillName,
       dir: copy.dir,
       version: copy.version,
-      status: `v${copy.version} (${copy.owner})`,
+      status: `v${copy.version}`,
       isInstallerTarget: false,
       owner: copy.owner,
     });
@@ -456,8 +456,11 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
   if (found.length > 0) {
     log('');
     log('Installed skills:');
+    // Every row names its Owning Command, because a copy the Installer did not
+    // write cannot be removed by the Installer, and the user has no other way
+    // to tell which tool controls a given directory. See issue #23.
     for (const item of found) {
-      log(`  ${item.platform.padEnd(24)} ${item.skillName.padEnd(18)} ${item.status.padEnd(30)} ${item.dir}`);
+      log(`  ${item.platform.padEnd(24)} ${item.skillName.padEnd(18)} ${item.status.padEnd(14)} ${item.dir}  (to update: ${item.owner})`);
     }
   } else {
     log('');

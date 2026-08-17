@@ -750,6 +750,10 @@ test('status reports a copy placed by hand in a Platform skill root, and names t
   const output = logs.join('\n');
   assert.ok(output.includes('Codex CLI'), 'reports Codex CLI platform');
   assert.ok(output.includes('visualkan'), 'reports visualkan skill');
+  // This test carried the claim in its name without asserting it, so status
+  // shipped naming the Owning Command for plugin-cache rows alone. Issue #23
+  // asks for it on every copy found.
+  assert.ok(output.includes('visualkan install codex'), 'names the Owning Command');
 });
 
 test('status marks STALE only at the Installer target path', (t) => {
