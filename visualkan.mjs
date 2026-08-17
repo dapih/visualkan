@@ -517,13 +517,20 @@ export function cmdSyncVersion(packageDir = HERE, log = console.log) {
   const today = new Date().toISOString().slice(0, 10);
   const ver = version(packageDir);
 
+  // The plugin manifest is one of the four outputs this command promises, and
+  // the Claude Code plugin Channel names its cache directory after the version
+  // inside it. Skipping the write in silence lets a release ship a cache
+  // directory named for the wrong version, which is the failure #22 names.
+  // A missing manifest is a broken package, so it fails here as the missing
+  // skill files do.
   const pluginPath = join(packageDir, '.claude-plugin', 'plugin.json');
-  if (existsSync(pluginPath)) {
-    const plugin = JSON.parse(readFileSync(pluginPath, 'utf8'));
-    plugin.version = ver;
-    writeFileSync(pluginPath, `${JSON.stringify(plugin, null, 2)}\n`);
-    log(`plugin.json set to v${plugin.version}`);
+  if (!existsSync(pluginPath)) {
+    throw new UserError(`The plugin manifest is missing from the package at ${pluginPath}.`);
   }
+  const plugin = JSON.parse(readFileSync(pluginPath, 'utf8'));
+  plugin.version = ver;
+  writeFileSync(pluginPath, `${JSON.stringify(plugin, null, 2)}\n`);
+  log(`plugin.json set to v${plugin.version}`);
 
   for (const skillName of Object.keys(SKILLS)) {
     const { meta: target } = skillSourceFiles(skillName, packageDir);

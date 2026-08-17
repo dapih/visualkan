@@ -16,6 +16,7 @@ import {
   rewriteWizardSiblingPath,
   findPluginCacheCopies,
   installedVersion,
+  cmdSyncVersion,
   toPosix,
   PLATFORMS,
   SKILLS,
@@ -304,6 +305,48 @@ test('the package declares no dependencies of any kind', () => {
   for (const field of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
     assert.deepEqual(pkg[field] ?? {}, {}, `${field} must stay empty`);
   }
+});
+
+// A package directory holding only what sync-version reads and writes.
+function syncFixture(t, { withPlugin = true } = {}) {
+  const dir = mkdtempSync(join(tmpdir(), 'vk-test-sync-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ version: '9.9.9' }));
+  if (withPlugin) {
+    mkdirSync(join(dir, '.claude-plugin'), { recursive: true });
+    writeFileSync(
+      join(dir, '.claude-plugin', 'plugin.json'),
+      JSON.stringify({ name: 'visualkan', version: '0.0.0' })
+    );
+  }
+  for (const skillName of Object.keys(SKILLS)) {
+    const skillDir = join(dir, 'skills', skillName);
+    mkdirSync(skillDir, { recursive: true });
+    writeFileSync(join(skillDir, 'SKILL.md'), 'body');
+    writeFileSync(join(skillDir, `${skillName}.metadata.json`), JSON.stringify({ version: '0.0.0' }));
+  }
+  return dir;
+}
+
+test('sync-version writes all four outputs that AGENTS.md promises', (t) => {
+  const dir = syncFixture(t);
+  cmdSyncVersion(dir, () => {});
+
+  const plugin = JSON.parse(readFileSync(join(dir, '.claude-plugin', 'plugin.json'), 'utf8'));
+  assert.equal(plugin.version, '9.9.9', 'plugin.json');
+  for (const skillName of Object.keys(SKILLS)) {
+    const metaPath = join(dir, 'skills', skillName, `${skillName}.metadata.json`);
+    assert.equal(JSON.parse(readFileSync(metaPath, 'utf8')).version, '9.9.9', `${skillName} sidecar`);
+  }
+  const controls = readFileSync(join(dir, 'skills', 'visualkan-wizard', 'references', 'controls.md'), 'utf8');
+  assert.ok(controls.includes('v9.9.9'), 'controls.md');
+});
+
+test('sync-version fails loudly when the plugin manifest is missing', (t) => {
+  // It used to skip the write in silence, so a release could ship a plugin
+  // cache directory named for the wrong version. See #22.
+  const dir = syncFixture(t, { withPlugin: false });
+  assert.throws(() => cmdSyncVersion(dir, () => {}), /plugin manifest is missing/);
 });
 
 test('the npm version hook stages every file that sync-version writes', () => {
