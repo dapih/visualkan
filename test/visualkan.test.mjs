@@ -5,7 +5,6 @@ import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// The Installer owns install, uninstall, status, and sync-version.
 import {
   targetDir,
   installedPath,
@@ -13,6 +12,8 @@ import {
   runtimePath,
   RUNTIME_ANCHOR_LINE,
   rewriteRuntimePath,
+  WIZARD_ANCHOR_LINE,
+  rewriteWizardSiblingPath,
   installedVersion,
   toPosix,
   PLATFORMS,
@@ -318,12 +319,38 @@ test('every skill metadata file carries the package version', () => {
   }
 });
 
+test('the generated visualkan-wizard controls.md matches controlsReport', () => {
+  const controlsMd = readFileSync(new URL('../skills/visualkan-wizard/references/controls.md', import.meta.url), 'utf8');
+  assert.equal(controlsMd.trim(), controlsReport({}).trim());
+});
+
+test('the wizard frontmatter carries disable-model-invocation: true', () => {
+  const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
+  assert.match(body, /disable-model-invocation:\s*true/);
+});
+
 test('the wizard description keeps the guard that stops it matching a plain request', () => {
   // ADR 0005: a description that drifts wide reopens the coin flip between the
   // two skills.
   const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
   assert.match(body, /ONLY when the user names this skill/);
   assert.match(body, /Do NOT use this for a request to visualize/);
+});
+
+test('the Wizard body asks no Backend question', () => {
+  const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
+  assert.ok(!body.includes('5. **Backend'), 'Wizard must not ask Backend question');
+});
+
+test('the Wizard body reads references/controls.md and runs no command in Step 1', () => {
+  const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
+  assert.match(body, /Read `references\/controls\.md` from this skill's own directory/);
+  assert.ok(!body.includes('node "'), 'Step 1 must not run a node command');
+});
+
+test('the Wizard body carries the absent-sibling sentence', () => {
+  const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
+  assert.match(body, /If that file does not exist, the `visualkan` skill was not installed beside this one/);
 });
 
 // --- the Control catalog (ADR 0004) ----------------------------------------
@@ -542,6 +569,28 @@ test('rewriteRuntimePath throws when anchor line is missing', () => {
   );
 });
 
+test('the Wizard sibling anchor line appears exactly once in the authored wizard body', () => {
+  const body = readFileSync(new URL('../skills/visualkan-wizard/SKILL.md', import.meta.url), 'utf8');
+  const matches = body.split(WIZARD_ANCHOR_LINE).length - 1;
+  assert.equal(matches, 1, 'Wizard sibling anchor line must appear exactly once in visualkan-wizard/SKILL.md');
+});
+
+test('rewriteWizardSiblingPath replaces the anchor line with the given path', () => {
+  const body = `header\n${WIZARD_ANCHOR_LINE}\nfooter`;
+  const result = rewriteWizardSiblingPath(body, 'C:/Users/test/SKILL.md');
+  assert.equal(
+    result,
+    'header\nC:/Users/test/SKILL.md\nfooter'
+  );
+});
+
+test('rewriteWizardSiblingPath throws when anchor line is missing', () => {
+  assert.throws(
+    () => rewriteWizardSiblingPath('no anchor here', '/test/path'),
+    /Could not find the Wizard sibling anchor line/
+  );
+});
+
 // --- version skew (ADR 0006) -----------------------------------------------
 
 test('installedVersion reads the version an install wrote', () => {
@@ -578,7 +627,13 @@ test('install writes every required file into a temporary home directory', (t) =
 
   const wizDir = targetDir('claude', null, 'visualkan-wizard', tmpHome);
   assert.ok(!existsSync(join(wizDir, 'scripts')), 'visualkan-wizard does not copy Runtime');
-  assert.ok(!existsSync(join(wizDir, 'references')), 'visualkan-wizard does not copy references');
+  assert.ok(existsSync(join(wizDir, 'references', 'controls.md')), 'visualkan-wizard carries references/controls.md');
+  for (const style of Object.keys(STYLES)) {
+    assert.ok(!existsSync(join(wizDir, 'references', `style-${style}.md`)), `wizard must not carry style-${style}.md`);
+  }
+
+  const wizBody = readFileSync(join(wizDir, 'SKILL.md'), 'utf8');
+  assert.ok(wizBody.includes('.claude/skills/visualkan/SKILL.md'), 'written wizard body carries resolved sibling path');
 
   assert.ok(logs.some((l) => l.includes('Installed visualkan')), 'logs installation of visualkan');
   assert.ok(logs.some((l) => l.includes('Installed visualkan-wizard')), 'logs installation of visualkan-wizard');

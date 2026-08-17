@@ -2,6 +2,7 @@
 name: visualkan-wizard
 description: Walks the user through the Visualkan Controls one at a time, then starts the run. Use ONLY when the user names this skill directly, for example "/visualkan-wizard" or "run the visualkan wizard". Do NOT use this for a request to visualize, explain, diagram, sketch, or draw something. The visualkan skill owns those requests.
 argument-hint: "(no arguments — the wizard asks for everything)"
+disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Glob, Grep
 ---
 
@@ -11,25 +12,17 @@ Guide the user through the Visualkan Controls, one step at a time, then start th
 
 The `visualkan` skill takes nine flags. A user who does not know them has to read the documentation before every run. This skill replaces that reading with a short sequence of choices.
 
-## Step 1: Run the controls command
+## Step 1: Read the Control catalog
 
-Run this exact command:
+Read `references/controls.md` from this skill's own directory. Resolve that relative path against the directory this skill was loaded from, not against the current working directory, and write it with forward slashes:
 
-```bash
-node "../visualkan/scripts/visualkan-run.mjs" controls
+```
+<this skill's own directory>/references/controls.md
 ```
 
-That path resolves relative to this skill's directory, so it needs no PATH lookup and no particular working directory. Do not search for a `visualkan` command, and do not look for a catalog in any skill library. This command prints it.
+The output lists every Control, every legal value, and the default.
 
-The output lists every Control, every legal value, and the default. It also reports which Backends this environment can reach.
-
-Never write the value lists into this file, and never recite them from memory. The command prints them from the code, so the command cannot be out of date.
-
-If that file does not exist, the install is stale or incomplete. Stop and tell the user to run this:
-
-```bash
-visualkan install <platform>
-```
+Never write the value lists into this file, and never recite them from memory. The catalog file is generated directly from the code constants, so it cannot be out of date.
 
 ## Step 2: Ask for the Controls
 
@@ -43,7 +36,6 @@ Ask in this order:
 2. **Device.** Ask this only if the user chose `mockup`. Skip it otherwise.
 3. **Draw Level.** Show the three values with their descriptions.
 4. **Complexity.** Show the three values with their Section counts.
-5. **Backend.** Ask this only if Step 1 reports more than one available Backend. Skip it otherwise, because there is no choice to make.
 
 Do not ask about the `native` Backend. Step 1 of the visualkan skill detects a `generate_image` tool and prefers it, at no cost, before this question ever matters. The confirmation block states which Backend won, so the user can still redirect it there.
 
@@ -63,11 +55,13 @@ Do not judge the answer here. The next skill tests whether the Content can fill 
 
 ## Step 4: Hand the run to the visualkan skill
 
-Read the skill file at this exact path, which sits beside this one:
+Read the sibling skill file at `../visualkan/SKILL.md`, which sits beside this one. Resolve that relative path against the directory this skill was loaded from, not against the current working directory, and write it with forward slashes:
 
 ```
-../visualkan/SKILL.md
+<this skill's own directory>/../visualkan/SKILL.md
 ```
+
+If that file does not exist, the `visualkan` skill was not installed beside this one. Stop and tell the user to install both skills (e.g. `npx skills add dapih/visualkan` or `visualkan install <platform>`).
 
 Follow that file from **Step 2: Analyze the content**, with the Controls and the Content that this wizard collected.
 
@@ -83,6 +77,6 @@ Do not construct the Image Prompt here. Do not call the image API here. The styl
 
 ## What this skill never does
 
-- It never reads `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`. The controls command reports Backend availability without exposing a key. See ADR 0004.
+- It never reads `OPENAI_API_KEY`, `GEMINI_API_KEY`, or `OPENROUTER_API_KEY`. The confirmation block in the visualkan skill handles Backend detection.
 - It never generates an image before the user approves the plan. The approval step lives in the visualkan skill.
 - It never copies the Control values or the style templates into this file. Two copies drift apart.

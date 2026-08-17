@@ -158,6 +158,16 @@ export function rewriteRuntimePath(body, runtimePath) {
   );
 }
 
+export const WIZARD_ANCHOR_LINE =
+  '<this skill\'s own directory>/../visualkan/SKILL.md';
+
+export function rewriteWizardSiblingPath(body, siblingPath) {
+  if (!body.includes(WIZARD_ANCHOR_LINE)) {
+    throw new UserError('Could not find the Wizard sibling anchor line in the skill body.');
+  }
+  return body.replace(WIZARD_ANCHOR_LINE, siblingPath);
+}
+
 // Both skills install together. An optional install would mean that the user
 // has to know that the Wizard exists, which is the problem the Wizard solves.
 export function cmdInstall(flags = {}, positional = [], options = {}) {
@@ -182,6 +192,7 @@ export function cmdInstall(flags = {}, positional = [], options = {}) {
   }
 
   const runtimeP = runtimePath(platformKey, projectRoot, PRIMARY_SKILL, home);
+  const siblingP = installedPath(platformKey, projectRoot, PRIMARY_SKILL, ['SKILL.md'], home);
 
   for (const skillName of Object.keys(SKILLS)) {
     const { md } = skillSourceFiles(skillName, packageDir);
@@ -192,6 +203,8 @@ export function cmdInstall(flags = {}, positional = [], options = {}) {
     let body = readFileSync(md, 'utf8');
     if (skillName === PRIMARY_SKILL) {
       body = rewriteRuntimePath(body, runtimeP);
+    } else if (skillName === 'visualkan-wizard') {
+      body = rewriteWizardSiblingPath(body, siblingP);
     }
     writeFileSync(join(dir, 'SKILL.md'), body);
     log(`Installed ${skillName} v${version(packageDir)} to ${join(dir, 'SKILL.md')}`);
@@ -293,6 +306,14 @@ export function cmdSyncVersion(packageDir = HERE, log = console.log) {
     writeFileSync(target, `${JSON.stringify(meta, null, 2)}\n`);
     log(`${skillName}.metadata.json set to v${meta.version} (${meta.updated})`);
   }
+
+  const controlsDir = join(packageDir, 'skills', 'visualkan-wizard', 'references');
+  if (!existsSync(controlsDir)) {
+    mkdirSync(controlsDir, { recursive: true });
+  }
+  const controlsTarget = join(controlsDir, 'controls.md');
+  writeFileSync(controlsTarget, `${controlsReport({})}\n`);
+  log(`controls.md generated for visualkan-wizard`);
 }
 
 // --- Entry point -----------------------------------------------------------

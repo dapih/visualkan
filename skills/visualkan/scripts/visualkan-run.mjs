@@ -243,7 +243,7 @@ export function controlsReport(env) {
   }
   // Described by capability, never by product name. Any platform that gives the
   // agent a generate_image tool qualifies, and only the agent can see one.
-  lines.push(`  ${pad('native', 20)}${pad('Any platform with its own', 24)}generate_image tool. Only the agent can detect it.`);
+  lines.push(`  ${pad('native', 20)}${pad('Any platform with its own', 26)}generate_image tool. Only the agent can detect it.`);
   lines.push(
     available.length
       ? `  Auto-detect chooses: ${available[0]}`
