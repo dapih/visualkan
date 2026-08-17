@@ -821,7 +821,10 @@ test('status reports not checked when the plugin cache glob matches nothing', (t
   const logs = [];
   cmdStatus({}, [], { home: tmpHome, log: (msg) => logs.push(msg) });
   const output = logs.join('\n');
-  assert.ok(output.includes('Not checked: Claude Code plugin cache (not checked / none found)'));
+  assert.ok(output.includes('Not checked: Claude Code plugin cache (not checked)'));
+  // #23: zero matches must never be reported as nothing installed. The path is
+  // Claude Code internal layout, so an empty cache and a moved one look alike.
+  assert.ok(!output.includes('none found'), 'must not claim that nothing is installed');
   assert.ok(output.includes('Gemini CLI folder-trust state'));
 });
 

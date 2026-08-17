@@ -497,7 +497,11 @@ export function cmdStatus(flags = {}, positional = [], options = {}) {
   if (pluginCopies.length > 0) searchedParts.push('Claude Code plugin cache');
 
   const notCheckedParts = [];
-  if (pluginCopies.length === 0) notCheckedParts.push('Claude Code plugin cache (not checked / none found)');
+  // A glob that matches nothing reports "not checked", and never claims that
+  // nothing is installed. That path is Claude Code internal layout and can
+  // change without notice, so zero matches cannot tell an empty cache apart
+  // from a moved one. See #23.
+  if (pluginCopies.length === 0) notCheckedParts.push('Claude Code plugin cache (not checked)');
   notCheckedParts.push('npx skills lockfiles');
   notCheckedParts.push('Gemini CLI folder-trust state (workspace skills require trusted folders)');
 
