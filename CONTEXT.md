@@ -19,11 +19,11 @@ The npm package, taken as a whole. It has two parts, the Installer and the Runti
 _Avoid_: the tool, the binary, the command line
 
 **Installer**:
-The npm bin, `visualkan.mjs`. It owns `install`, `uninstall`, `status`, and `sync-version`. It creates skill directories, so it never lives inside one.
+The npm bin, `visualkan.mjs`. It owns `install`, `uninstall`, `status`, and `sync-version`, and it rewrites each Anchor Sentence into a Written Path. It creates skill directories, so it never lives inside one.
 _Avoid_: the CLI, the binary, the command, setup
 
 **Runtime**:
-`scripts/visualkan-run.mjs`. It owns every Control and image generation. Install copies it into `<skill>/scripts/`, and the Installer imports it so that one file serves both. See ADR 0006.
+`visualkan-run.mjs`. It owns every Control, the prompt gate, and image generation. It ships inside the `visualkan` skill directory, and the Installer imports it so that one file serves both. See ADR 0006.
 _Avoid_: the CLI, engine, executable, helper, the script
 
 **Handoff Token**:
@@ -41,6 +41,14 @@ _Avoid_: install location, install level
 **Channel**:
 The route by which Visualkan reaches a Platform. The npm package, the Claude Code plugin marketplace, `npx skills add`, and a manual copy of the files are each a Channel.
 _Avoid_: install method, distribution, route, delivery
+
+**Anchor Sentence**:
+The one literal line in a skill body that names a path relative to the skill's own directory, and asks the agent to resolve it against the directory the skill was loaded from. See ADR 0008.
+_Avoid_: prose path, prose instruction, the sentence, placeholder
+
+**Written Path**:
+The absolute or project-relative path that the Installer writes in place of an Anchor Sentence. One literal per install, decided from the `--project` flag. See ADR 0008.
+_Avoid_: resolved path, substituted path, install path, hardened path
 
 ### The output
 
@@ -67,8 +75,12 @@ _Avoid_: structured output, text summary, companion output
 ### The controls
 
 **Control**:
-One of the settings that shapes a Visual Explanation. Style, Draw Level, Complexity, Device, and Mode are Controls. `visualkan controls` prints every Control with its legal values.
+One of the settings that shapes a Visual Explanation. Style, Draw Level, Complexity, Device, and Mode are Controls.
 _Avoid_: option, flag, parameter, setting, argument
+
+**Control Catalog**:
+The list of every Control with its legal values. The code is its only source. `visualkan controls` prints it, and a generated reference file carries it to a Platform that has no Node. See ADR 0004.
+_Avoid_: catalogue, controls list, options list, the catalog file
 
 **Style**:
 The visual language of a Visual Explanation. One of `whiteboard`, `infographic`, `presentation`, `diagram`, `mindmap`, `mindmap-structured`, or `mockup`.
@@ -109,7 +121,7 @@ The step that asks the user for missing Content. It runs when no Content exists,
 _Avoid_: grilling, brainstorm, interrogation, follow-up questions
 
 **Style Template**:
-The markdown file that shapes an Image Prompt for one Style. One file per Style, in `references/style-<name>.md`. The Runtime serves it through `template --style <name>`, and the agent never reads it by path. See ADR 0007.
+The markdown file that shapes an Image Prompt for one Style. One file per Style, in `references/style-<name>.md`. The agent reads it from the skill's own directory. See ADR 0009.
 _Avoid_: prompt template, style file, reference, template file
 
 **Image Prompt**:

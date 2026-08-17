@@ -10,6 +10,8 @@ We rejected that shape here. Two days earlier, ADR 0006 recorded that a prose co
 
 So the templates move out as markdown files, but the agent obtains one by running `template --style <name>` rather than by reading a path. Delivery becomes a command, which is the pattern `controls` already proves in production. The Runtime resolves `references/` relative to itself, so no new placeholder is needed and ADR 0006's existing substitution carries the whole change.
 
+**Delivery is partly superseded by [ADR 0009](0009-the-agent-reads-a-style-template-from-its-file.md).** The agent now reads `references/style-<name>.md` directly, and `template --style` is deleted. Everything else below stands: seven files, one per Style, `requires` per Style, and the gate at `generate`. The reason is the asymmetry stated in the next paragraph. The `native` route never calls `generate`, so a `native` user paid a mandatory Node dependency for delivery and received none of the enforcement it pairs with.
+
 Delivery alone is not enforcement, because an agent can still write a plausible prompt from general knowledge. The gate is at `generate`, the one place that must see the finished prompt. Each entry in `STYLES` gained a `requires` list naming the sections that Style's prompt must contain, and `generate` rejects a prompt that is missing them or shorter than 300 words — a floor the Prompt Quality Checklist already stated in prose. A skipped template now fails the run before any money is spent, instead of quietly costing four cents for a worse image.
 
 ## Consequences
