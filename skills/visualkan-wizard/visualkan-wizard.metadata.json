@@ -1,6 +1,6 @@
 {
   "name": "visualkan-wizard",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Walks the user through the Visualkan Controls one at a time, then hands the run to the visualkan skill. Invoked by name only.",
   "author": {
     "name": "Davi Muammar",
@@ -8,7 +8,7 @@
   },
   "license": "MIT",
   "created": "2026-08-14",
-  "updated": "2026-08-17",
+  "updated": "2026-08-18",
   "keywords": [
     "visualkan",
     "wizard",
