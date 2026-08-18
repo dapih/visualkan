@@ -1,0 +1,245 @@
+name: release
+
+# The whole release, from a pushed tag to a published package and an updated
+# main. RELEASING.md explains the policy this enforces; the short version is
+# that main is itself a distribution channel for two of the four Channels, so
+# publish must succeed before main moves.
+#
+# npm authentication is Trusted Publishing (OIDC). There is no NPM_TOKEN. The
+# trust relationship is configured on npmjs.com and names THIS file by name, so
+# renaming this file breaks publishing until the npm side is updated to match.
+
+on:
+  push:
+    tags:
+      # Deliberately not `v*`. That also matches `visualkan--v0.7.0`, the
+      # Claude Code marketplace tag that the finalize job pushes, so every
+      # release would trigger a second run of itself.
+      - 'v[0-9]*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Rehearse without publishing or pushing anything'
+        type: boolean
+        default: true
+
+# A release must never be cancelled part-way. Publishing is irreversible, and a
+# run killed between publish and the main push leaves the two disagreeing.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: verify (${{ matrix.os }}, node ${{ matrix.node }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [24, 26]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ matrix.node }}
+      - name: Run the tests
+        run: npm test
+      - name: Check that the CLI starts
+        run: node visualkan.mjs version
+      - name: Check that the published files are present
+        run: npm pack --dry-run
+
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The ancestry check below needs main, which a shallow clone omits.
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Resolve the version under release
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            # A rehearsal has no tag, so the version comes from the file that
+            # would produce one.
+            TAG="v$(node -p "require('./package.json').version")"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Releasing $TAG"
+
+      - name: Run the release guard
+        run: node .github/scripts/release-guard.mjs "${{ steps.resolve.outputs.tag }}"
+
+      - name: Check that main can fast-forward to this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Map it explicitly. A checkout does not guarantee a usable
+          # origin/main tracking ref, and a missing ref would make the check
+          # below fail open.
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          if git merge-base --is-ancestor origin/main HEAD; then
+            echo "ok    origin/main is an ancestor, so the fast-forward will succeed"
+          else
+            echo "FAIL  origin/main is not an ancestor of this commit."
+            echo "      Fast-forwarding main would rewrite history, so this release stops here."
+            exit 1
+          fi
+
+  channels:
+    name: channels
+    runs-on: ubuntu-latest
+    needs: [guard]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Channel 1: the npm package. This is the only Channel where the
+      # Installer rewrites the Anchor Sentence, so the Runtime is reached by a
+      # path that install decided. Running it any other way would not test that.
+      - name: npm Channel, by the written path
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm pack
+          npm install -g "./dapih-visualkan-${{ needs.guard.outputs.version }}.tgz"
+          FAKE_HOME="$(mktemp -d)"
+          HOME="$FAKE_HOME" visualkan install claude
+          RUNTIME="$FAKE_HOME/.claude/skills/visualkan/scripts/visualkan-run.mjs"
+          test -f "$RUNTIME" || { echo "the Installer wrote no Runtime"; exit 1; }
+          node "$RUNTIME" controls | grep -q 'Visualkan Controls'
+          echo "ok    the Runtime runs from the path the Installer wrote"
+
+      # Channel 3 and 4: npx skills add, and a manual copy. Both place the
+      # subtree verbatim at a skill root the Platform states, with no Installer
+      # involved, so a plain copy reproduces them.
+      - name: manual copy Channel
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEST="$(mktemp -d)"
+          cp -r skills/visualkan "$DEST/"
+          node "$DEST/visualkan/scripts/visualkan-run.mjs" controls | grep -q 'Visualkan Controls'
+          echo "ok    the Runtime runs from a plain copy of the subtree"
+
+      - name: the generated Control Catalog states nothing about this machine
+        shell: bash
+        env:
+          OPENAI_API_KEY: this-must-not-change-the-shipped-file
+        run: |
+          set -euo pipefail
+          FILE=skills/visualkan-wizard/references/controls.md
+          if grep -q 'Auto-detect chooses:' "$FILE" || grep -q 'set OPENAI_API_KEY' "$FILE"; then
+            echo "FAIL  $FILE carries a fact about the machine that generated it."
+            exit 1
+          fi
+          echo "ok    the shipped Control Catalog judges no machine"
+
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    needs: [verify, guard, channels]
+    # The gate in front of the one step that cannot be undone. The environment
+    # name is also recorded in the npm trusted publisher config, so a run that
+    # somehow reaches publish without it is refused by npm as well as GitHub.
+    environment: npm-publish
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      # Trusted publishing needs npm 11.5.1 or later. Pinning to whatever ships
+      # inside the Node image would break silently when that image changes.
+      - name: Upgrade npm for trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Publish
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "Rehearsal: running npm publish --dry-run"
+            npm publish --dry-run
+          else
+            npm publish
+          fi
+        shell: bash
+
+  finalize:
+    name: finalize
+    runs-on: ubuntu-latest
+    needs: [guard, publish]
+    if: ${{ inputs.dry_run != true }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Everything below runs after an irreversible publish, so each step is
+      # written to be safe to run again. A failed release is re-run, not undone.
+      - name: Tag the Claude Code plugin release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          PLUGIN_TAG="visualkan--v${{ needs.guard.outputs.version }}"
+          if git ls-remote --exit-code --tags origin "refs/tags/$PLUGIN_TAG" >/dev/null 2>&1; then
+            echo "ok    $PLUGIN_TAG already exists, nothing to do"
+          else
+            git tag -a "$PLUGIN_TAG" -m "visualkan ${{ needs.guard.outputs.version }}"
+            git push origin "refs/tags/$PLUGIN_TAG"
+            echo "ok    created $PLUGIN_TAG"
+          fi
+
+      - name: Fast-forward main
+        shell: bash
+        run: |
+          set -euo pipefail
+          # A no-op when main already points here, which is what makes a re-run
+          # safe. Never forced: the guard proved this is a fast-forward.
+          git push origin "HEAD:refs/heads/main"
+          echo "ok    main points at this release"
+
+      - name: Create the GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.guard.outputs.tag }}"
+          node .github/scripts/changelog-section.mjs "${{ needs.guard.outputs.version }}" > /tmp/notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --notes-file /tmp/notes.md
+            echo "ok    updated the existing release"
+          else
+            gh release create "$TAG" --title "$TAG" --notes-file /tmp/notes.md
+            echo "ok    created the release"
+          fi
