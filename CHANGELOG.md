@@ -2,6 +2,7 @@
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 0.7.1 | 2026-08-18 | The global command works on Linux and macOS, where it had never run |
 | 0.7.0 | 2026-08-18 | Four Channels reach Visualkan, and a fresh checkout's tests actually pass |
 | 0.6.0 | 2026-08-15 | Style templates move to reference files, and `generate` gates the prompt |
 | 0.5.0 | 2026-08-15 | The Runtime installs beside the skill, so an agent never needs PATH |
@@ -10,6 +11,14 @@
 | 0.3.0 | 2026-08-14 | Fixes found by the first live generation run, and draw-level for infographic |
 | 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
+
+### v0.7.1 — The global command works on Linux and macOS
+
+`visualkan install <platform>` did nothing on Linux and macOS. It exited 0, wrote no files, and printed no message. It had behaved that way in every release since 0.2.0, and nothing reported it, because there was no error to report.
+
+- **Fixed: the global command never ran when npm installed it as a symlink.** Each file ended with a guard comparing `import.meta.url` against `process.argv[1]` to decide whether it was executed or imported. `process.argv[1]` is the path as typed, and `import.meta.url` is the file Node loaded with symlinks already resolved. npm installs a global bin as a symlink on Linux and macOS, so the two were never equal there, the guard stayed false, and the program ended without doing anything. The guard now resolves the link before comparing.
+- **Windows was never affected**, because npm writes a shim naming the real path. Every manual release check had been performed from Windows, which is why this survived nine releases.
+- **Found by a release pipeline, not by a person.** The new `channels` job installs the packed tarball on Linux and runs the Runtime by the path the Installer wrote. It failed on its first rehearsal. No unit test could have caught this: the suite imports these modules, and the fault appears only when one is executed through a link.
 
 ### v0.7.0 — Four Channels reach Visualkan, and a fresh checkout's tests actually pass
 
