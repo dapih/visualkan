@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, mkdtempSync, rmSync, symlinkSync, realpathSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -778,7 +778,11 @@ test('isEntryPoint sees through the symlink that npm installs a global command a
     return;
   }
 
-  const realUrl = pathToFileURL(real).href;
+  // Build the expected URL from the resolved path, because that is what
+  // import.meta.url always holds: Node resolves symlinks when it loads a
+  // module. macOS proves the point, where os.tmpdir() sits under /var, and
+  // /var is itself a link to /private/var.
+  const realUrl = pathToFileURL(realpathSync(real)).href;
   assert.equal(isEntryPoint(realUrl, link), true, 'invoked through the link');
   assert.equal(isEntryPoint(realUrl, real), true, 'invoked directly');
 });
