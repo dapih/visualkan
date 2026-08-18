@@ -123,7 +123,12 @@ jobs:
           npm pack
           npm install -g "./dapih-visualkan-${{ needs.guard.outputs.version }}.tgz"
           FAKE_HOME="$(mktemp -d)"
+          echo "which visualkan: $(command -v visualkan || echo NOT-FOUND)"
+          echo "FAKE_HOME=$FAKE_HOME"
           HOME="$FAKE_HOME" visualkan install claude
+          echo "install exit: $?"
+          echo "tree under FAKE_HOME:"
+          find "$FAKE_HOME" -maxdepth 6 | head -40
           RUNTIME="$FAKE_HOME/.claude/skills/visualkan/scripts/visualkan-run.mjs"
           test -f "$RUNTIME" || { echo "the Installer wrote no Runtime"; exit 1; }
           node "$RUNTIME" controls | grep -q 'Visualkan Controls'
