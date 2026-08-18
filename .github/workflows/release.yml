@@ -186,14 +186,30 @@ jobs:
         run: npm install -g npm@latest
 
       - name: Publish
-        run: |
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            echo "Rehearsal: running npm publish --dry-run"
-            npm publish --dry-run
-          else
-            npm publish
-          fi
         shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.dry_run }}" != "true" ]; then
+            npm publish
+            exit 0
+          fi
+
+          # A rehearsal never publishes. `npm publish --dry-run` still asks the
+          # registry, so it refuses a version that is already released, and a
+          # rehearsal is usually run against exactly that. Refusing is the right
+          # answer there, not a fault, so the two cases are separated rather
+          # than the failure being swallowed.
+          NAME="$(node -p 'require("./package.json").name')"
+          VERSION="${{ needs.guard.outputs.version }}"
+          if npm view "$NAME@$VERSION" version >/dev/null 2>&1; then
+            echo "ok    $NAME@$VERSION is already on the registry."
+            echo "      A real release of this version would be refused, which is correct."
+            npm pack >/dev/null
+            echo "ok    the tarball still builds"
+          else
+            npm publish --dry-run
+            echo "ok    the registry accepted the rehearsal of $NAME@$VERSION"
+          fi
 
   finalize:
     name: finalize
