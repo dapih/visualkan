@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 import {
   targetDir,
@@ -50,6 +50,7 @@ import {
   DEVICES,
   MODES,
   RUNTIME_USAGE,
+  isEntryPoint,
 } from '../skills/visualkan/scripts/visualkan-run.mjs';
 
 // --- parseArgs -------------------------------------------------------------
@@ -743,6 +744,44 @@ test('rewriteWizardSiblingPath throws when anchor line is missing', () => {
 });
 
 // --- version skew (ADR 0006) -----------------------------------------------
+
+// --- entry point detection -------------------------------------------------
+
+test('isEntryPoint recognises the file it was given, and rejects another', () => {
+  const runtime = fileURLToPath(new URL('../skills/visualkan/scripts/visualkan-run.mjs', import.meta.url));
+  const runtimeUrl = new URL('../skills/visualkan/scripts/visualkan-run.mjs', import.meta.url).href;
+  const installer = fileURLToPath(new URL('../visualkan.mjs', import.meta.url));
+
+  assert.equal(isEntryPoint(runtimeUrl, runtime), true, 'its own path');
+  assert.equal(isEntryPoint(runtimeUrl, installer), false, 'a different file');
+  assert.equal(isEntryPoint(runtimeUrl, undefined), false, 'nothing to compare');
+  assert.equal(isEntryPoint(runtimeUrl, '/no/such/file.mjs'), false, 'a path that is not on disk');
+});
+
+test('isEntryPoint sees through the symlink that npm installs a global command as', (t) => {
+  // The bug this covers: npm links a global bin on Linux and macOS, so
+  // process.argv[1] was the link and import.meta.url was its target. The two
+  // never matched, so `visualkan install <platform>` exited 0 in silence on
+  // both platforms, in every release from 0.2.0 onward. CI found it; no manual
+  // release check ever could, because Windows uses a shim rather than a link.
+  const dir = mkdtempSync(join(tmpdir(), 'vk-test-link-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+
+  const real = join(dir, 'real.mjs');
+  const link = join(dir, 'linked.mjs');
+  writeFileSync(real, '// stands in for an installed CLI\n');
+  try {
+    symlinkSync(real, link);
+  } catch {
+    // Creating a symlink on Windows needs a privilege that CI does not grant.
+    t.skip('this platform does not allow creating a symlink');
+    return;
+  }
+
+  const realUrl = pathToFileURL(real).href;
+  assert.equal(isEntryPoint(realUrl, link), true, 'invoked through the link');
+  assert.equal(isEntryPoint(realUrl, real), true, 'invoked directly');
+});
 
 test('installedVersion reads the version an install wrote', () => {
   const read = () => JSON.stringify({ version: '0.4.1' });

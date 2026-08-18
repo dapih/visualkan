@@ -17,6 +17,7 @@ import {
   controlsReport,
   cmdGenerate,
   toPosix,
+  isEntryPoint,
   STYLES,
 } from './skills/visualkan/scripts/visualkan-run.mjs';
 
@@ -580,7 +581,7 @@ async function main(argv) {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (isEntryPoint(import.meta.url)) {
   main(process.argv.slice(2)).catch((error) => {
     console.error(error instanceof UserError ? error.message : error);
     // Set the code and let Node drain. On Windows, process.exit() while fetch

@@ -11,7 +11,7 @@
 // <skill>/<name>.metadata.json sidecar written at install time, and the
 // Installer reads that to report skew.
 
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, realpathSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -276,6 +276,27 @@ export function controlsReport(env, ver = null) {
 // because the Installer imports the Runtime and never the reverse.
 export function toPosix(path) {
   return path.replaceAll('\\', '/');
+}
+
+// Whether this module is the file that was executed, rather than one that was
+// imported.
+//
+// `process.argv[1]` is the path as it was typed. `import.meta.url` is the file
+// Node actually loaded, with every symlink already resolved. npm installs a
+// global command as a symlink on Linux and macOS, so the two never matched
+// there, the guard at the foot of each file stayed false, and `visualkan
+// install <platform>` exited 0 without writing a file or printing a word. It
+// did that in every release from 0.2.0 onward. Windows was unaffected, because
+// npm writes a shim there that names the real path, which is why every manual
+// release check passed. Resolve the link before comparing.
+export function isEntryPoint(moduleUrl, argvPath = process.argv[1]) {
+  if (!argvPath) return false;
+  try {
+    return moduleUrl === pathToFileURL(realpathSync(argvPath)).href;
+  } catch {
+    // An argv[1] that does not exist on disk is not this module.
+    return false;
+  }
 }
 
 // --- Style Templates -------------------------------------------------------
@@ -546,7 +567,7 @@ export async function runMain(argv) {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
+if (isEntryPoint(import.meta.url)) {
   runMain(process.argv.slice(2)).catch((error) => {
     console.error(error instanceof UserError ? error.message : error);
     // Set the code and let Node drain. On Windows, process.exit() while fetch
