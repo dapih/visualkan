@@ -1,7 +1,7 @@
 {
   "name": "visualkan",
   "description": "Turns content into visual explanations with seven distinct visual styles",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "author": {
     "name": "Davi Muammar"
   }
