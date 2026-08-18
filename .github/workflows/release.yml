@@ -226,6 +226,15 @@ jobs:
         with:
           node-version: 24
 
+      # An annotated tag records who made it, and a runner has no identity of
+      # its own. Without this, `git tag -a` fails with "empty ident name", and
+      # it fails after the publish has already succeeded. That happened on the
+      # 0.7.1 release, which had to be finished by hand.
+      - name: Identify the committer
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
       # Everything below runs after an irreversible publish, so each step is
       # written to be safe to run again. A failed release is re-run, not undone.
       - name: Tag the Claude Code plugin release
