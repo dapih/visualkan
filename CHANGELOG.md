@@ -2,7 +2,7 @@
 
 | Version | Date | Description |
 |---------|------|-------------|
-| Unreleased | — | The agent reads Style Templates from files, and `template` command is deleted |
+| 0.7.0 | 2026-08-18 | Four Channels reach Visualkan, and a fresh checkout's tests actually pass |
 | 0.6.0 | 2026-08-15 | Style templates move to reference files, and `generate` gates the prompt |
 | 0.5.0 | 2026-08-15 | The Runtime installs beside the skill, so an agent never needs PATH |
 | 0.4.1 | 2026-08-14 | The npm package moved to the `@dapih/visualkan` scope |
@@ -11,11 +11,20 @@
 | 0.2.0 | 2026-08-14 | Node CLI replaces make, jq, curl, and base64 |
 | 0.1.0 | 2026-08-14 | First Visualkan release: fork identity and an independent version line |
 
-### Unreleased
+### v0.7.0 — Four Channels reach Visualkan, and a fresh checkout's tests actually pass
+
+Epic [#15](https://github.com/dapih/visualkan/issues/15) makes Visualkan installable four ways from one `skills/` directory: the npm package, the Claude Code plugin marketplace, `npx skills add`, and a manual copy. A review pass over the branch afterward found, and fixed, several defects that a green test suite had been hiding.
 
 - **Clean break: reinstall required for 0.6.0 and earlier.** The skill repository reorganized to `skills/<name>/SKILL.md` (with subtrees for `scripts/` and `references/`). Existing installs do not upgrade in place. Users must reinstall (`npm install -g @dapih/visualkan@latest`, then `visualkan install <platform>`).
 - **The `template` command is deleted (breaking change / public interface change).** The agent reads `references/style-<name>.md` directly from the skill directory on every route, so a `native` user does not need Node installed to fetch a Style Template. The gate inside `generate` continues to reject prompts that miss required sections. (ADR 0009)
 - **The OpenClaw Channel never worked in versions prior to 0.7.0.** No OpenClaw version has ever read `~/clawd`; that path was Visualkan's own artifact. The platform registry now correctly targets `.openclaw/skills`. Existing `~/clawd` directories are reported as residue by `status` and `uninstall` and left for the user to delete.
+- **The `generate` gate pointed an agent at the deleted `template` command.** The message printed when a prompt failed the gate told the agent to run `template --style <name>`, the exact command the entry above removes. It now names the Style Template's own path, forward-slashed on every platform.
+- **The generated `references/controls.md` no longer freezes one machine into a file every user reads.** It was generated with an empty environment, so a Platform on the manual-copy or `npx skills add` Channel always saw "set OPENAI_API_KEY" and "Auto-detect finds nothing here", regardless of its own machine. It now names each key without judging whether it is set.
+- **`visualkan status --project` crashed** with a raw Node stack trace when the flag carried no directory. It now asks for one.
+- **`visualkan status` names the command that owns every copy it finds**, not only the ones in the Claude Code plugin cache, and says `no-version` in place of a bare dash for a copy with no metadata sidecar.
+- **`sync-version` failed silently** when `.claude-plugin/plugin.json` was missing, skipping one of its four promised outputs without a word. It now refuses.
+- **The test suite failed on a fresh clone on Windows.** `core.autocrlf` rewrote a generated, committed file to CRLF, while the generator that produces it emits `\n`. A `.gitattributes` file now pins the repository to LF.
+- **108 tests**, up from 72.
 
 ### v0.6.0 — Style templates move out, and the prompt is checked
 
