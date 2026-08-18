@@ -12,7 +12,9 @@ Visualkan turns content into a visual explanation, and installs as a skill into 
 
 ## Verify by executing
 
-Five real bugs in this project were found by running the code. None were found by reading it. Every one lived in a path that the tests stopped short of, so the tests stayed green while the code was wrong.
+Seven real bugs in this project were found by running the code. None were found by reading it. Every one lived in a path that the tests stopped short of, so the tests stayed green while the code was wrong.
+
+The two most recent are the shape to expect. `visualkan install <platform>` did nothing at all on Linux and macOS, in every release from 0.2.0 to 0.7.0, because npm installs a global command as a symlink and the entry-point guard compared the link against the file it points at. The test suite could not reach it, because the suite imports these modules and the fault appears only when one is executed through a link. Separately, the suite failed on any fresh clone on Windows for months, and passed everywhere it was actually run, because a generated file is committed and git rewrote its line endings on checkout.
 
 Run what you change. Report what you did not run, and why.
 

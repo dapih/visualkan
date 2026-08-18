@@ -243,6 +243,20 @@ npm install -g @dapih/visualkan@latest
 visualkan install <platform>
 ```
 
+### Important: Linux and macOS users on 0.7.0 or earlier
+
+On Linux and macOS, `visualkan install <platform>` did nothing in every release up to and including 0.7.0. It exited without an error, without writing a file, and without printing a message, so a failed install looked exactly like a successful one. npm installs a global command as a symlink on those platforms, and the entry point compared that link against the file it points at, so the program ended before it began. Windows was never affected.
+
+If you installed on Linux or macOS and the skill never appeared, upgrade and install again:
+
+```bash
+npm install -g @dapih/visualkan@latest
+visualkan install <platform>
+visualkan status
+```
+
+`visualkan status` lists every copy it can find. An empty list means nothing is installed yet.
+
 ### Other Commands
 
 ```bash
