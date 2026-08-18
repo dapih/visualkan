@@ -8,20 +8,25 @@ on:
 
 jobs:
   test:
-    # Path handling differs between the two, and the 0.1.0 install bug was
-    # Windows-only, so both must pass.
+    # Path handling differs between the three, and the 0.1.0 install bug was
+    # Windows-only, so all of them must pass.
+    #
+    # Node 24 is the Active LTS and the floor that `engines` declares. Node 26
+    # is Current, and it becomes LTS in October 2026. Running both catches a
+    # break on the next version before that version becomes the floor.
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node: [24, 26]
 
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v7
         with:
-          node-version: 24
+          node-version: ${{ matrix.node }}
 
       # There are no dependencies, so there is nothing to install.
       - name: Run the tests
